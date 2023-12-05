@@ -1,55 +1,74 @@
 import dayjs from "dayjs";
-import { THeader } from "./type";
+import { TEvent, TEventWithExtras, THeader } from "./type";
 
 export function dayView(): THeader[] {
-	const headers: THeader[] = [];
-	const day = dayjs();
+    const headers: THeader[] = [];
+    const day = dayjs();
 
-	headers.push({
-		id: day.day(),
-		title: day.format("ddd"),
-		children: [],
-		span: 1,
-	});
+    headers.push({
+        id: day.day(),
+        title: day.format("ddd"),
+        children: [],
+        span: 1,
+    });
 
-	return headers;
+    return headers;
 }
 
 export function weekView(): THeader[] {
-	const headers: THeader[] = [];
-	const day = dayjs().startOf("week");
+    const headers: THeader[] = [];
+    const day = dayjs().startOf("week");
 
-	for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-		const dayAtIndex = day.add(dayIndex, "day");
+    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const dayAtIndex = day.add(dayIndex, "day");
 
-		headers.push({
-			id: dayIndex,
-			title: dayAtIndex.format("dddd"),
-			span: 1,
-			children: [],
-		});
-	}
+        headers.push({
+            id: dayIndex,
+            title: dayAtIndex.format("dddd"),
+            span: 1,
+            children: [],
+        });
+    }
 
-	return headers;
+    return headers;
 }
 
 export function monthView(): THeader[] {
-	const headers: THeader[] = [];
-	const day = dayjs().startOf("month");
-	const daysInMonth = day.daysInMonth();
+    const headers: THeader[] = [];
+    const day = dayjs().startOf("month");
+    const daysInMonth = day.daysInMonth();
 
-	for (let dayIndex = 0; dayIndex < daysInMonth; dayIndex++) {
-		const dayAtIndex = day.add(dayIndex, "day");
+    for (let dayIndex = 0; dayIndex < daysInMonth; dayIndex++) {
+        const dayAtIndex = day.add(dayIndex, "day");
 
-		headers.push({
-			id: dayIndex,
-			title: dayAtIndex.format("D"),
-			span: 1,
-			children: [],
-		});
-	}
+        headers.push({
+            id: dayIndex,
+            title: dayAtIndex.format("D"),
+            span: 1,
+            children: [],
+        });
+    }
 
-	return headers;
+    return headers;
+}
+
+export function eventToEventWithExtras(event: TEvent, extras?: TEventWithExtras["extras"] | null): TEventWithExtras {
+    return {
+        ...event,
+        extras: {
+            ...(extras || {}),
+            coordinates: {
+                x: extras?.coordinates.x || 0,
+                y: extras?.coordinates.y || 0,
+            },
+        },
+    };
+}
+
+export function eventWithExtrasToEvent(event: TEventWithExtras): TEvent {
+    const { extras, ...restEvent } = event;
+
+    return restEvent;
 }
 
 // export function parseHeaders(headers: THeader[]): THeader[][] {
