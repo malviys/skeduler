@@ -146,14 +146,12 @@ function buildGrid(headers: THeader[]): TGrid {
             key = `${key}-${currentHeader.id}`;
         }
 
-        grid[key] = {
-            events: [],
-            height: 0,
-            id: key,
-            width: 0,
-            x: 0,
-            y: 0,
-        };
+        grid[key] = hours.map((hour) => {
+            return {
+                id: `hour_[${Intl.DateTimeFormat([], { hour12: false, timeStyle: "short" }).format(hour)}]`,
+                events: [],
+            };
+        });
     }
 
     return grid;
