@@ -27,17 +27,13 @@ export type THeader = {
 };
 
 /** Cell: represents the cell of scheduler */
-type TCell = {
+export type TCell = {
     id: string | number;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
     events: (string | number)[];
 };
 
 /** Grid: represents whole scheduler grid*/
-export type TGrid = Record<string | number, TCell>;
+export type TGrid = Record<string | number, TCell[]>;
 
 /** View: a view will represent how scheduler is structures. i.e weekly, monthly or a single day */
 export type TView = "day" | "week" | "month";
@@ -54,6 +50,9 @@ export type TState = Record<
 
         // events:
         events?: TEventWithExtras[];
+
+        // hours:
+        hours?: Date[];
 
         // grid:
         grid?: TGrid;
