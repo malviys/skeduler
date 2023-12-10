@@ -1,20 +1,18 @@
 .container {
-    position: sticky;
-    // top: 100px; 
-    left: 0;
-    width: 100%;
+    position: absolute;
     display: flex;
     align-items: center;
-    background-color: red;
+    left: 0;
+    width: 100%;
     z-index: 9;
-    transform: translate(0px, 100px);
     user-select: none;
+    background-color: var(--scheduler-accent-color);
 }
 
 .timer {
     margin-left: 2rem;
-    color: red;
     font-size: 8pt;
     min-height: 2px;
     font-weight: 400;
+    color: var(--scheduler-accent-color);
 }

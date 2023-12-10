@@ -1,6 +1,9 @@
+import dayjs from "dayjs";
 import { memo } from "react";
 
 import { useSelector } from "../../../data/store/store";
+import { useTimer } from "../../../hooks/system";
+import { getCssVariable, parseCssVariable } from "../../../utils/styles";
 
 import classes from "./time-indicator.module.scss";
 
@@ -13,22 +16,26 @@ type TimeIndicatorProps = {
 function TimeIndicator(props: TimeIndicatorProps) {
     const { name, showTimer = true, showLine = true } = props;
 
-    // const time = useTimer();
-    // const grid = useSelector((state) => state[name]?.grid || {});
+    const time = useTimer();
     const isMounted = useSelector((state) => state[name]?.mounted || false);
+    const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height"));
 
     if (!isMounted) {
         return <></>;
     }
 
+    const style = {
+        top: (time.hour() + time.minute() / 60) * cellHeight + 23,
+        height: showLine ? "1px" : "0px",
+    } as React.CSSProperties;
+
     return (
-        <div
-            className={classes.container}
-            style={{
-                height: showLine ? "1px" : "0px",
-            }}
-        >
-            {<span className={classes.timer}>{showTimer && "10:AM"}</span>}
+        <div className={classes.container} style={style}>
+            {
+                <span className={classes.timer}>
+                    {showTimer && Intl.DateTimeFormat([], { timeStyle: "short", hour12: false }).format(+time)}
+                </span>
+            }
         </div>
     );
 }
