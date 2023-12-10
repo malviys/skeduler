@@ -1,21 +1,22 @@
+import dayjs, { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
 
 export function useTimer() {
-	const [time, setTime] = useState<Date>(new Date());
+    const [time, setTime] = useState(dayjs());
 
-	useEffect(() => {
-		const iId = setInterval(() => {
-			const now = new Date();
+    useEffect(() => {
+        const iId = setInterval(() => {
+            const now = dayjs();
 
-			if (now.getSeconds() === 0) {
-				setTime(now);
-			}
-		}, 1000);
+            if (now.second() === 0) {
+                setTime(now);
+            }
+        }, 1000);
 
-		return () => {
-			clearInterval(iId);
-		};
-	}, []);
+        return () => {
+            clearInterval(iId);
+        };
+    }, []);
 
-	return time;
+    return time;
 }
