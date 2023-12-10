@@ -25,7 +25,7 @@ function TimeIndicator(props: TimeIndicatorProps) {
     }
 
     const style = {
-        top: (time.hour() + time.minute() / 60) * cellHeight + 23,
+        transform: `translate(0, ${(time.hour() + time.minute() / 60) * cellHeight + time.hour()}px)`,
         height: showLine ? "1px" : "0px",
     } as React.CSSProperties;
 
