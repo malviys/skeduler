@@ -1,0 +1,25 @@
+:root {
+    // scheduler
+    --scheduler-primary-color: gray;
+    --scheduler-accent-color: #000000;
+
+    // header
+    
+    // body
+
+    // cell
+    --scheduler-cell-width: 100%;
+    --scheduler-cell-min-width: 56px;
+    --scheduler-cell-height: 3.125rem;
+
+    // event
+    --scheduler-event-border-radius: 0.5rem;
+    --scheduler-event-margin: 0.25rem;
+    --scheduler-event-padding: 0.5rem;
+    --scheduler-event-handle-width: 0.5rem;
+    --scheduler-event-handle-height: 100%;
+
+    // draggable
+
+    // droppable
+}
