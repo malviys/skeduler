@@ -1,3 +1,5 @@
+import { Dayjs } from "dayjs";
+
 export type TReturnStateFunction = (state: TState) => TState;
 
 /** Event: represents the events schedule in scheduler */
@@ -52,7 +54,7 @@ export type TState = Record<
         events?: TEventWithExtras[];
 
         // hours:
-        hours?: Date[];
+        hours?: Dayjs[];
 
         // grid:
         grid?: TGrid;
