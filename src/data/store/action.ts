@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import type { TEventWithExtras, TGrid, THeader, TReturnStateFunction, TView } from "./type";
 import { dayView, monthView, weekView } from "./utils";
 
@@ -95,8 +95,6 @@ export function setMounted(name: string): TReturnStateFunction {
     };
 }
 
-export function setDuration(name: string, start: Date, end: Date) {}
-
 export function setGrid(name: string, grid: TGrid): TReturnStateFunction {
     return (state) => {
         return {
@@ -104,6 +102,22 @@ export function setGrid(name: string, grid: TGrid): TReturnStateFunction {
             [name]: {
                 ...state[name],
                 grid,
+            },
+        };
+    };
+}
+
+export function setHours(name: string, start: Dayjs, end: Dayjs): TReturnStateFunction {
+    const hours = Array.from({ length: end.diff(start, "hour") }, (_, index) => {
+        return dayjs().set("hours", index).set("minutes", 0).set("seconds", 0);
+    });
+
+    return (state) => {
+        return {
+            ...state,
+            [name]: {
+                ...state[name],
+                hours,
             },
         };
     };
