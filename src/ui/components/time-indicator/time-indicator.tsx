@@ -33,7 +33,7 @@ function TimeIndicator(props: TimeIndicatorProps) {
         <div className={classes.container} style={style}>
             {
                 <span className={classes.timer}>
-                    {showTimer && Intl.DateTimeFormat([], { timeStyle: "short", hour12: false }).format(+time)}
+                    {showTimer && time.format('HH:mm')}
                 </span>
             }
         </div>
