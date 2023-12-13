@@ -1,0 +1,14 @@
+.container {
+    position: relative;
+    display: flex;
+    column-gap: 0.5rem;
+    text-transform: capitalize;
+    padding: var(--scheduler-event-padding);
+    margin: var(--scheduler-event-padding);
+    border-radius: var(--scheduler-event-border-radius);
+}
+
+.handle {
+    --scheduler-event-handle-width: 0.5rem;
+    --scheduler-event-handle-height: 100%;
+}

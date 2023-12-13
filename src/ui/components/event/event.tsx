@@ -3,10 +3,9 @@ import { memo, useMemo } from "react";
 
 import { TEvent, TEventWithExtras } from "../../../data/store/type";
 import Draggable from "../draggable/draggable";
+import { mergeClasses } from "../../../utils/styles";
 
-const classes = {
-    container: "container",
-};
+import classes from "./event.module.scss";
 
 type EventProps = {
     event: TEventWithExtras;
@@ -17,28 +16,31 @@ function Event(props: EventProps) {
     const { event, renderEvent } = props;
 
     const placeholderEvent = useMemo(() => {
-        const { color, title } = event;
+        const {
+            color,
+            title,
+            extras: { visibility },
+        } = event;
+
         return (
             <div
                 style={{
-                    display: "flex",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "8px",
+                    width: "calc(163px - 4 * var(--scheduler-event-padding))",
+                    height: "calc(100px - 4 * var(--scheduler-event-padding))",
                     backgroundColor: color,
-                    textTransform: "capitalize",
+                    filter: visibility === "faded" ? "brightness(0.8)" : 'none',
                 }}
+                className={mergeClasses(classes.container)}
             >
                 <span
                     style={{
                         width: "6px",
                         borderRadius: "3px",
-                        margin: "6px 6px",
                         backgroundColor: "white",
                     }}
                 />
-                <div style={{verticalAlign: 'center'}}>
-                    <text>{title}</text>
+                <div style={{ verticalAlign: "center" }}>
+                    <span>{title}</span>
                 </div>
             </div>
         );

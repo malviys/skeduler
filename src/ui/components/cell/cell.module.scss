@@ -1,8 +1,8 @@
 .container {
-    width: 100%;
-    min-width: 100px;
+    width: var(--scheduler-cell-width);
+    min-width: var(--scheduler-cell-min-width);
+    height: var(--scheduler-cell-height);
     background-color: white;
-    height: 16px;
     transition: background-color .5s .005s ease-in;
     transition: outline .5s .005s ease-in;
 }
