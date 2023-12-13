@@ -16,6 +16,8 @@ export type TEvent = {
 export type TEventWithExtras = TEvent & {
     extras: {
         coordinates: { x: number; y: number };
+        dragging?: boolean;
+        visibility?: "visible" | "hidden" | "faded";
     };
 };
 
