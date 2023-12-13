@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useMemo } from "react";
 
 import { TEventWithExtras } from "../../../data/store/type";
+import { mergeClasses } from "../../../utils/styles";
 
 import classes from "./draggable.module.scss";
 
@@ -24,16 +25,11 @@ function Draggable(props: DraggableProps) {
         },
     });
 
-    const style: React.CSSProperties = {
-        position: "absolute",
-        animation: "none",
+    const style = {
         left: data.extras.coordinates.x,
         top: data.extras.coordinates.y,
         transform: CSS.Translate.toString(transform),
-        touchAction: "none",
-        width: "100px",
-        height: "100px",
-    };
+    } as React.CSSProperties;
 
     const renderChildren = useMemo(() => {
         if (typeof children === "function") {
@@ -46,7 +42,7 @@ function Draggable(props: DraggableProps) {
     return (
         <div
             ref={setNodeRef}
-            className={[classes.container, isDragging ? classes.dragging : ""].join(" ")}
+            className={mergeClasses(classes.container)}
             style={style}
             {...(typeof children === "function" ? {} : listeners)}
             {...attributes}
