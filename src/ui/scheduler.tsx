@@ -1,7 +1,7 @@
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragMoveEvent, DragStartEvent, Modifier, useSensors } from "@dnd-kit/core";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
+import dayjs from "dayjs";
 import React from "react";
-// import { css } from "@emotion/css";
 
 import Cell from "./components/cell/cell";
 import Event from "./components/event/event";
@@ -12,132 +12,268 @@ import { useDispatch } from "../data/store/store";
 import type { TEvent, TEventWithExtras, THeader, TView } from "../data/store/type";
 
 import { useSchedulerInternalState } from "../hooks/data";
+import { usePointerSensor } from "../hooks/dndkit";
+
+import { snapToGridModifier } from "../utils/dnd-kit";
+import { getCssVariable, parseCssVariable } from "../utils/styles";
+
 import classes from "./scheduler.module.scss";
 
-export type TSchedulerConfig = {
-    cell: {
-        width?: number;
-        height?: number;
-    };
-};
-
-const defaultSchedulerConfig: TSchedulerConfig = {
-    cell: {
-        height: 50,
-        width: 100,
-    },
-};
-
 export type TSchedulerProps<T> = {
-    /** Name of scheduler to bind with */
+    /**
+     * @property {string} name --- Name will bind scheduler component to useScheduler(name) hook.
+     *
+     * Example:
+     * ```js
+     * import Scheduler, {useScheduler} from "@malviys/skeduler";
+     *
+     * function ComponentOne(){
+     *      const scheduler = useScheduler('scheduler');
+     *
+     *      return <ComponentTwo/>;
+     * }
+     *
+     * function ComponentTwo(){
+     *      const scheduler = useScheduler('scheduler');
+     *
+     *      return <Scheduler name="scheduler"/>;
+     * }
+     * ```
+     *
+     * The scheduler in component one and component two can update the state of <Scheduler/> component.\n
+     * Also, single page can have multiple scheduler components with different name and their respective hooks.
+     */
     name: string;
 
-    /**  */
+    /**
+     * @property {TView} view -- A view defines the structure of scheduler.
+     *
+     * A view can be of day, week or month.
+     *
+     * @warning - setting headers from <strong>useScheduler()</strong> will override default view.
+     */
     view: TView;
 
-    /** */
-    start?: Date;
-
-    /** */
-    end?: Date;
-
-    config?: TSchedulerConfig;
-
-    /** Render event in scheduler */
+    /**
+     * Renders custom event in scheduler. It will override default event component.
+     */
     renderEvent?: (event: TEvent, options: { dragHandler: SyntheticListenerMap }) => JSX.Element;
 
-    /** Renders header */
+    /**
+     * Renders custom header cell in scheduler. It will override default header cell component.
+     */
     renderHeader?: (header: THeader) => JSX.Element;
 
-    /** Called when events is getting dragged */
+    /**
+     * Called when events is getting dragged.
+     */
     onDrag?: (event: T) => void;
 
-    /** Called when event is dropped successfully to cells */
+    /**
+     * Called when event is dropped successfully.
+     */
     onDrop?: (event: T) => void;
 };
 
 function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
-    const { name, view, start, end, renderEvent, renderHeader, onDrag, onDrop } = props;
+    // props
+    const { name, view, renderEvent, renderHeader, onDrag, onDrop } = props;
 
-    const { initialized, mounted, headers, events, setEvents } = useSchedulerInternalState(name);
+    // external state
+    const { initialized, mounted, headers, events, grid, setEvents } = useSchedulerInternalState(name);
     const dispatch = useDispatch();
+    const sensors = useSensors(usePointerSensor());
 
-    const headerColumnRowsRef = React.useRef<HTMLDivElement | null>(null);
-    const bodyColumnRowsRef = React.useRef<HTMLDivElement | null>(null);
+    // component State
+    const headerRowsRef = React.useRef<HTMLDivElement | null>(null);
+    const bodyRowsRef = React.useRef<HTMLDivElement | null>(null);
     const bodyTimeColumnRef = React.useRef<HTMLDivElement | null>(null);
 
     const [elevateHeader, setElevateHeader] = React.useState(false);
     const [elevateTimeColumn, setElevateTimeColumn] = React.useState(false);
+    const [modifiers, setModifiers] = React.useState<Modifier[]>([]);
 
+    // mount: set views after store is initialized
     React.useEffect(() => {
         if (initialized) {
             dispatch(setMounted(name));
-            /* const actions = [setMounted(name)]; */
 
-            // if (!headers.length) {
             if ((["day", "week", "month"] as TView[]).includes(view)) {
                 dispatch(setView(name, view));
             }
-            // }
-
-            // dispatch(...actions);
         }
-    }, [initialized /* headers */]);
+    }, [initialized]);
 
+    // mount: attach scroll listeners
     React.useEffect(() => {
         function schedulerBodyScrollListener(event: Event) {
-            if (headerColumnRowsRef.current) {
-                headerColumnRowsRef.current.scrollLeft = bodyColumnRowsRef.current?.scrollLeft || 0;
+            if (headerRowsRef.current) {
+                headerRowsRef.current.scrollLeft = bodyRowsRef.current?.scrollLeft || 0;
             }
 
             if (bodyTimeColumnRef.current) {
-                bodyTimeColumnRef.current.scrollTop = bodyColumnRowsRef.current?.scrollTop || 0;
+                bodyTimeColumnRef.current.scrollTop = bodyRowsRef.current?.scrollTop || 0;
             }
 
-            setElevateHeader(!!bodyColumnRowsRef.current?.scrollTop);
-            setElevateTimeColumn(!!bodyColumnRowsRef.current?.scrollLeft);
+            // add elevation if scheduler is scrolled from its initial position
+            setElevateHeader(!!bodyRowsRef.current?.scrollTop);
+            setElevateTimeColumn(!!bodyRowsRef.current?.scrollLeft);
         }
 
-        if (initialized) {
-            bodyColumnRowsRef.current?.addEventListener("scroll", schedulerBodyScrollListener);
+        if (mounted) {
+            bodyRowsRef.current?.addEventListener("scroll", schedulerBodyScrollListener);
         }
 
-        return () => bodyColumnRowsRef.current?.removeEventListener("scroll", schedulerBodyScrollListener);
-    }, [initialized]);
+        return () => bodyRowsRef.current?.removeEventListener("scroll", schedulerBodyScrollListener);
+    }, [mounted]);
 
-    const handleOnDragEnd = React.useCallback(
-        (ev: DragEndEvent) => {
+    // mount: add modifiers
+    React.useEffect(() => {
+        const snapToGrid = snapToGridModifier();
+
+        setModifiers([snapToGrid]);
+    }, []);
+
+    // triggers when event is first dragged
+    const handleOnDragStart = React.useCallback(
+        (ev: DragStartEvent) => {
+            const {
+                active: { data: { current } },
+            } = ev;
+
+            if (current?.event?.id) {
+                const event = current.event as TEventWithExtras;
+
+                const newEvents = events.map((itrEvent) => {
+                    const mappedEvent = itrEvent;
+
+                    // make events faded while dragging
+                    mappedEvent.extras = {
+                        ...mappedEvent.extras,
+                        visibility: "faded",
+                    };
+
+                    return { ...mappedEvent };
+                });
+
+                setEvents(newEvents);
+            }
+        },
+        [events, setEvents],
+    );
+
+    // triggers when event is in dragging state
+    const handleOnDragMove = React.useCallback(
+        (ev: DragMoveEvent) => {
             const { active, delta } = ev;
 
             if (active.data.current?.event?.id) {
                 const event = active.data.current.event as TEventWithExtras;
                 const newEvents = events.filter((itrEvent) => itrEvent.id !== event.id);
 
-                const coordinates = {
-                    x: Math.floor((event.extras.coordinates.x + delta.x) / 163) * 164,
-                    y: Math.floor((event.extras.coordinates.y + delta.y) / 50) * 51,
-                };
+                // calculate event current position/coordinates
+                const offsetX = event.extras.coordinates.x + delta.x;
+                const offsetY = event.extras.coordinates.y + delta.y;
 
-                newEvents.push({
-                    ...event,
-                    extras: {
+                const targetColumn = Array.from(headerRowsRef.current?.lastElementChild?.children || []).find(
+                    (column) => {
+                        const { left, right } = column.getClientRects()[0] || {};
+
+                        if (offsetX >= left && offsetX <= right) {
+                            return true;
+                        }
+
+                        return false;
+                    },
+                );
+
+                if (targetColumn) {
+                    const coordinates = {
+                        x: Math.floor(offsetX / targetColumn.clientWidth) * targetColumn.clientWidth,
+                        y: Math.floor(offsetY / 16) * 16,
+                    };
+
+                    newEvents.push({
+                        ...event,
+                        extras: {
+                            ...event.extras,
+                            coordinates,
+                        },
+                    });
+                }
+
+                // setEvents(newEvents);
+            }
+        },
+        [events, setEvents],
+    );
+
+    // triggers when user release event and dragging is stopped
+    const handleOnDragEnd = React.useCallback(
+        (ev: DragEndEvent) => {
+            const { active, delta } = ev;
+
+            if (active.data.current?.event?.id) {
+                const event = active.data.current.event as TEventWithExtras;
+
+                // header column elements, headers will provide dropping position x-offset
+                const columns = Array.from(headerRowsRef.current?.lastElementChild?.children || []) as HTMLElement[];
+
+                // calculate event dropping position/coordinates
+                const offsetX = event.extras.coordinates.x + delta.x;
+                const offsetY = event.extras.coordinates.y + delta.y;
+
+                // find dropping column
+                const targetColumn = columns.find((column) => {
+                    const { offsetWidth, offsetLeft } = column;
+                    const { offsetLeft: left } = columns[0];
+
+                    // add first column offset to event x-offset to align it with columns horizontal position
+                    if (offsetX + left >= offsetLeft && offsetX + left <= offsetLeft + offsetWidth) {
+                        return true;
+                    }
+
+                    return false;
+                });
+
+                if (targetColumn) {
+                    const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height"));
+                    const cellWidth = targetColumn.clientWidth;
+
+                    // final coordinates after clamping x-offset & y-offset w.r.t target cell
+                    const coordinates = {
+                        x: Math.floor(offsetX / cellWidth) * (cellWidth + 1),
+                        y: Math.floor(offsetY / cellHeight) * (cellHeight + 1),
+                    };
+
+                    event.extras = {
                         ...event.extras,
                         coordinates,
-                    },
+                    };
+                }
+
+                const newEvents = events.map((itrEvent) => {
+                    const mappedEvent = itrEvent.id === event.id ? event : itrEvent;
+
+                    // make all events visible again from faded after event is dropped.
+                    mappedEvent.extras = {
+                        ...mappedEvent.extras,
+                        visibility: "visible",
+                    };
+
+                    return { ...mappedEvent };
                 });
 
                 setEvents(newEvents);
             }
         },
-        [events],
+        [events, headers, grid, setEvents],
     );
 
     // Scheduler header rows
     const headerRows = React.useMemo(() => {
-        console.log("rendering header rows");
-
         return (
-            <div id="scheduler_header_rows" ref={headerColumnRowsRef} className={classes.header_columns_row}>
+            <div id="scheduler_header_rows" ref={headerRowsRef} className={classes.header_columns_row}>
                 {headers.map((columns, rowIndex) => {
                     const id = `scheduler_header_row_[${rowIndex}]`;
                     const key = id;
@@ -153,7 +289,7 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
                                         key={key}
                                         id={id}
                                         className={classes.header_cell}
-                                        style={{ minWidth: cell.span * 100 }}
+                                        // style={{ minWidth: `var(--scheduler-cell-min-width) * 100` }}
                                     >
                                         {cell.title}
                                     </div>
@@ -168,17 +304,16 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
 
     // Scheduler body time column row cells
     const bodyTimeColumnCells = React.useMemo(() => {
-        console.log("rendering body time columns");
-
         return (
             <>
+                {/* FIXME: replace inline rows calculation with precalculated rows*/}
                 {Array.from({ length: 24 }).map((_, index) => {
                     const id = `scheduler_body_time_column_cell_[${index}]`;
                     const key = id;
 
                     return (
                         <div key={key} id={id} className={classes.time_column_cell}>
-                            <span>12:00 AM</span>
+                            <span>{dayjs(new Date().setHours(index, 0)).format("HH:mm")}</span>
                         </div>
                     );
                 })}
@@ -188,8 +323,6 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
 
     // Scheduler body time column
     const bodyTimeColumn = React.useMemo(() => {
-        console.log("rendering body time column");
-
         return (
             <div
                 id="scheduler_body_time_column"
@@ -204,15 +337,13 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
                 {bodyTimeColumnCells}
             </div>
         );
-    }, [elevateTimeColumn, bodyTimeColumnCells]);
+    }, [name, elevateTimeColumn, bodyTimeColumnCells]);
 
     // Scheduler body rows
     const bodyRows = React.useMemo(() => {
-        console.log("rendering body rows");
-
         return (
             <div id="scheduler_body_rows" className={classes.body_rows}>
-                {<TimeIndicator name={name} showTimer={false} />}
+                {/* FIXME: replace inline rows calculation with precalculated rows*/}
                 {Array.from({ length: 24 }).map((_, rowIndex) => {
                     const rowId = `scheduler_body_row_[${rowIndex}]`;
 
@@ -231,24 +362,56 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
         );
     }, [headers]);
 
+    // render events
     const renderingEvents = React.useMemo(() => {
-        console.log("rendering events");
-
         if (!mounted) {
             return <></>;
+        }
+
+        // calculate events coordinate
+        function processCoordinates(event: TEventWithExtras): TEventWithExtras {
+            const {
+                extras: { coordinates },
+            } = event;
+
+            // FIXME: 1. causing event to place at their initial position after event is dropped at x:0, y:0 position
+            if (coordinates.x || coordinates.y) {
+                return event;
+            }
+
+            const targetCell = grid[event.group.join("-")]?.at(
+                event.start.getHours() * 4 + (event.start.getMinutes() % 15),
+            );
+
+            // FIXME: 2. causing event to place at their initial position after event is dropped at x:0, y:0 position
+            coordinates.x = parseInt(event.group.join("-"), 10) * 163;
+            coordinates.y = (event.start.getHours() * 4 + (event.start.getMinutes() % 15)) * 16;
+
+            return event;
         }
 
         return (
             <>
                 {events.map((event) => (
-                    <Event key={`scheduler_event_[${event.id}]`} event={event} renderEvent={renderEvent} />
+                    <Event
+                        key={`scheduler_event_[${event.id}]`}
+                        event={processCoordinates(event)}
+                        renderEvent={renderEvent}
+                    />
                 ))}
             </>
         );
-    }, [events, mounted, renderEvent]);
+    }, [events, mounted, grid, renderEvent]);
 
     return (
-        <DndContext onDragEnd={handleOnDragEnd}>
+        <DndContext
+            modifiers={modifiers}
+            sensors={sensors}
+            onDragStart={handleOnDragStart}
+            // onDragMove={handleOnDragMove}
+            onDragEnd={handleOnDragEnd}
+            onDragCancel={console.log}
+        >
             <div className={classes.scheduler}>
                 <div
                     id="scheduler_header"
@@ -269,11 +432,11 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
                 <div id="scheduler_body" className={classes.body}>
                     {bodyTimeColumn}
                     <div
-                        ref={bodyColumnRowsRef}
+                        ref={bodyRowsRef}
                         id="scheduler_body_rows_wrapper"
                         className={classes.body_rows_events_wrapper}
                     >
-                        {/* <TimeIndicator name={name} showTimer={false} /> */}
+                        <TimeIndicator name={name} showTimer={false} />
                         {bodyRows}
                         {renderingEvents}
                     </div>
