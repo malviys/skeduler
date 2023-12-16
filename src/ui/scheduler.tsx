@@ -80,7 +80,7 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
     const { name, view, renderEvent, renderHeader, onDrag, onDrop } = props;
 
     // external state
-    const { initialized, mounted, headers, events, grid, setEvents } = useSchedulerInternalState(name);
+    const { initialized, mounted, headers, events, grid, setEvents, setGrid } = useSchedulerInternalState(name);
     const dispatch = useDispatch();
     const sensors = useSensors(usePointerSensor());
 
@@ -129,10 +129,20 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
 
     // mount: add modifiers
     React.useEffect(() => {
-        const snapToGrid = snapToGridModifier();
+        const modifiers: Modifier[] = [];
 
-        setModifiers([snapToGrid]);
-    }, []);
+        const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height")) / 4;
+        const cellWidth = headerRowsRef.current?.lastElementChild?.firstElementChild?.clientWidth;
+
+        if (mounted) {
+
+            if (cellWidth) {
+                modifiers.push(snapToGridModifier(cellWidth, cellHeight));
+            }
+        }
+
+        setModifiers(modifiers);
+    }, [mounted]);
 
     // triggers when event is first dragged
     const handleOnDragStart = React.useCallback(
@@ -169,11 +179,12 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
 
             if (active.data.current?.event?.id) {
                 const event = active.data.current.event as TEventWithExtras;
+                const { coordinates = { x: 0, y: 0 } } = event.extras;
                 const newEvents = events.filter((itrEvent) => itrEvent.id !== event.id);
 
                 // calculate event current position/coordinates
-                const offsetX = event.extras.coordinates.x + delta.x;
-                const offsetY = event.extras.coordinates.y + delta.y;
+                const offsetX = coordinates.x + delta.x;
+                const offsetY = coordinates.y + delta.y;
 
                 const targetColumn = Array.from(headerRowsRef.current?.lastElementChild?.children || []).find(
                     (column) => {
@@ -215,13 +226,17 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
 
             if (active.data.current?.event?.id) {
                 const event = active.data.current.event as TEventWithExtras;
+                const { coordinates = { x: 0, y: 0 } } = event.extras;
+
+                const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height")) / 4;
+                const cellWidth = headerRowsRef.current?.lastElementChild?.firstElementChild?.clientWidth || 0;
 
                 // header column elements, headers will provide dropping position x-offset
                 const columns = Array.from(headerRowsRef.current?.lastElementChild?.children || []) as HTMLElement[];
 
                 // calculate event dropping position/coordinates
-                const offsetX = event.extras.coordinates.x + delta.x;
-                const offsetY = event.extras.coordinates.y + delta.y;
+                const offsetX = coordinates.x + delta.x;
+                const offsetY = coordinates.y + delta.y;
 
                 // find dropping column
                 const targetColumn = columns.find((column) => {
@@ -237,18 +252,13 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
                 });
 
                 if (targetColumn) {
-                    const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height"));
-                    const cellWidth = targetColumn.clientWidth;
-
-                    // final coordinates after clamping x-offset & y-offset w.r.t target cell
-                    const coordinates = {
-                        x: Math.floor(offsetX / cellWidth) * (cellWidth + 1),
-                        y: Math.floor(offsetY / cellHeight) * (cellHeight + 1),
-                    };
-
                     event.extras = {
                         ...event.extras,
-                        coordinates,
+                        // final coordinates after clamping x-offset & y-offset w.r.t target cell
+                        coordinates: {
+                            x: Math.floor(offsetX / cellWidth) * (cellWidth + 1),
+                            y: (offsetY),
+                        },
                     };
                 }
 
@@ -267,7 +277,7 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
                 setEvents(newEvents);
             }
         },
-        [events, headers, grid, setEvents],
+        [events, headers, setEvents, setGrid],
     );
 
     // Scheduler header rows
@@ -368,24 +378,24 @@ function Scheduler<T extends TEvent>(props: TSchedulerProps<T>) {
             return <></>;
         }
 
+        const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height")) / 4;
+        const cellWidth = headerRowsRef.current?.lastElementChild?.firstElementChild?.clientWidth || 1;
+
         // calculate events coordinate
         function processCoordinates(event: TEventWithExtras): TEventWithExtras {
-            const {
-                extras: { coordinates },
-            } = event;
+            const { extras } = event;
 
-            // FIXME: 1. causing event to place at their initial position after event is dropped at x:0, y:0 position
-            if (coordinates.x || coordinates.y) {
+            if (extras.coordinates) {
                 return event;
             }
 
-            const targetCell = grid[event.group.join("-")]?.at(
-                event.start.getHours() * 4 + (event.start.getMinutes() % 15),
-            );
-
-            // FIXME: 2. causing event to place at their initial position after event is dropped at x:0, y:0 position
-            coordinates.x = parseInt(event.group.join("-"), 10) * 163;
-            coordinates.y = (event.start.getHours() * 4 + (event.start.getMinutes() % 15)) * 16;
+            event.extras = {
+                ...extras,
+                coordinates: {
+                    x: parseInt(event.group.join("-"), 10) * cellWidth,
+                    y: (event.start.getHours() * 4 + (event.start.getMinutes() % 15)) * cellHeight,
+                },
+            };
 
             return event;
         }
