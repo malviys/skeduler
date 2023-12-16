@@ -25,8 +25,8 @@ function Event(props: EventProps) {
         return (
             <div
                 style={{
-                    width: "calc(163px - 4 * var(--scheduler-event-padding))",
-                    height: "calc(100px - 4 * var(--scheduler-event-padding))",
+                    width: "calc(163px - 2 * var(--scheduler-event-padding))",
+                    height: "calc(100px - 2 * var(--scheduler-event-padding))",
                     backgroundColor: color,
                     filter: visibility === "faded" ? "brightness(0.8)" : 'none',
                 }}
