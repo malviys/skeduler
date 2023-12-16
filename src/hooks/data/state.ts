@@ -1,8 +1,9 @@
+import dayjs from "dayjs";
 import React from "react";
 
 import * as actions from "../../data/store/action";
 import { useDispatch, useSelector } from "../../data/store/store";
-import type { TCell, TEventWithExtras, TGrid, THeader, TView } from "../../data/store/type";
+import type { TEventWithExtras, TGrid, THeader, TView } from "../../data/store/type";
 
 export function useSchedulerInternalState(name: string) {
     const dispatch = useDispatch();
@@ -49,32 +50,18 @@ export function useSchedulerInternalState(name: string) {
         dispatch(actions.setMounted(name));
     }, [name, dispatch]);
 
-    const updateGridCellByIndex = React.useCallback(
-        (index: number, headerId: string | number, data: ((data: TCell) => Partial<TCell>) | Partial<TCell>) => {
-            grid[headerId][index] = {
-                ...grid[headerId][index],
-                ...(typeof data === "function" ? data(grid[headerId][index]) : data),
-            };
-
-            dispatch(actions.setGrid(name, { ...grid }));
+    const setHours = React.useCallback(
+        (start: Date, end: Date) => {
+            dispatch(actions.setHours(name, dayjs(start), dayjs(end)));
         },
-        [name, grid, dispatch],
+        [name, dispatch],
     );
 
-    const updateGridCellById = React.useCallback(
-        (id: string, headerId: string | number, data: Partial<TCell>) => {
-            const cellIndex = grid[headerId].findIndex((cell) => cell.id === id);
-
-            if (cellIndex >= 0) {
-                grid[headerId][cellIndex] = {
-                    ...grid[headerId][cellIndex],
-                    ...data,
-                };
-            }
-
-            dispatch(actions.setGrid(name, { ...grid }));
+    const setGrid = React.useCallback(
+        (grid: ((grid: TGrid) => TGrid) | TGrid) => {
+            dispatch(actions.setGrid(name, grid));
         },
-        [name, grid, dispatch],
+        [name, dispatch],
     );
 
     /** Clears scheduer state */
@@ -93,7 +80,8 @@ export function useSchedulerInternalState(name: string) {
         setEvents,
         setView,
         setMounted,
-        updateGridCellByIndex,
+        setHours,
+        setGrid,
         clear,
     };
 }

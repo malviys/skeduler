@@ -95,13 +95,19 @@ export function setMounted(name: string): TReturnStateFunction {
     };
 }
 
-export function setGrid(name: string, grid: TGrid): TReturnStateFunction {
+export function setGrid(name: string, grid: ((grid: TGrid) => TGrid) | TGrid): TReturnStateFunction {
     return (state) => {
+        const pGrid = state[name].grid || {};
+        const nGrid = typeof grid === "function" ? grid(pGrid || {}) : grid;
+
         return {
             ...state,
             [name]: {
                 ...state[name],
-                grid,
+                grid: {
+                    ...pGrid,
+                    ...nGrid,
+                },
             },
         };
     };
