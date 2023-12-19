@@ -15,9 +15,9 @@ export type TEvent = {
 /** TODO: add doc comment */
 export type TEventWithExtras = TEvent & {
     extras: {
-        coordinates: { x: number; y: number };
+        coordinates?: { x: number; y: number };
         dragging?: boolean;
-        visibility?: "visible" | "hidden" | "faded";
+        visibility: "visible" | "hidden" | "faded";
     };
 };
 
