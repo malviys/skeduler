@@ -11,7 +11,7 @@ export function snapToGridModifier(
 
     return (args) => {
         const {
-            // offset travelled during dnd -ve if moved in left or bottom direction
+            // offset traveled during dnd -ve if moved in left or bottom direction
             transform,
 
             // active element
@@ -30,17 +30,17 @@ export function snapToGridModifier(
 
             // calculate x & y offset
             // (distance between activation event and event left side) + (distance covered (x-dir) while dragging)
-            const offsetX = activatorCoordinates.x - draggingNodeRect.left + transform.x;
+            // const offsetX = activatorCoordinates.x - draggingNodeRect.left + transform.x;
 
-            // (distance between activation event and event top side) + (distance covered (y-dir) while dragging)
-            const offsetY = activatorCoordinates.y - draggingNodeRect.top + transform.y;
+            // // (distance between activation event and event top side) + (distance covered (y-dir) while dragging)
+            // const offsetY = /* activatorCoordinates.y - draggingNodeRect.top + */ transform.y;
 
             return {
                 ...transform,
 
                 // clamp x & y offset
-                x: Math.floor(offsetX / width) * (width + deltaX),
-                y: Math.floor(offsetY / height) * (height + deltaY),
+                // x: Math.floor(offsetX / width) * (width + deltaX),
+                // y: Math.floor(offsetY / height) * (height + deltaY),
             };
         }
 
