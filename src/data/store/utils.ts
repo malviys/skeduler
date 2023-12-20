@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
-import { TEvent, TEventWithExtras, THeader } from "./type";
+import { TSchedulerEvent, TSchedulerEventWithExtras, TSchedulerHeader } from "./types";
 
-export function dayView(): THeader[] {
-    const headers: THeader[] = [];
+export function dayView(): TSchedulerHeader[] {
+    const headers: TSchedulerHeader[] = [];
     const day = dayjs();
 
     headers.push({
@@ -15,8 +15,8 @@ export function dayView(): THeader[] {
     return headers;
 }
 
-export function weekView(): THeader[] {
-    const headers: THeader[] = [];
+export function weekView(): TSchedulerHeader[] {
+    const headers: TSchedulerHeader[] = [];
     const day = dayjs().startOf("week");
 
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
@@ -33,8 +33,8 @@ export function weekView(): THeader[] {
     return headers;
 }
 
-export function monthView(): THeader[] {
-    const headers: THeader[] = [];
+export function monthView(): TSchedulerHeader[] {
+    const headers: TSchedulerHeader[] = [];
     const day = dayjs().startOf("month");
     const daysInMonth = day.daysInMonth();
 
@@ -52,14 +52,15 @@ export function monthView(): THeader[] {
     return headers;
 }
 
-export function eventToEventWithExtras(event: TEvent, extras?: TEventWithExtras["extras"] | null): TEventWithExtras {
+export function eventToEventWithExtras(event: TSchedulerEvent, extras: TSchedulerEventWithExtras["extras"] | null): TSchedulerEventWithExtras {
     const {
         visibility = "visible",
         coordinates = {
             x: extras?.coordinates?.x || 0,
             y: extras?.coordinates?.y || 0,
         },
-        dragging,
+        dragging = false,
+        collisions = []
     } = extras || {};
 
     return {
@@ -68,11 +69,12 @@ export function eventToEventWithExtras(event: TEvent, extras?: TEventWithExtras[
             dragging,
             coordinates,
             visibility,
+            collisions,
         },
     };
 }
 
-export function eventWithExtrasToEvent(event: TEventWithExtras): TEvent {
+export function eventWithExtrasToEvent(event: TSchedulerEventWithExtras): TSchedulerEvent {
     const { extras, ...restEvent } = event;
 
     return restEvent;
