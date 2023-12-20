@@ -1,5 +1,5 @@
 import dayjs, { Dayjs } from "dayjs";
-import type { TEventWithExtras, TGrid, THeader, TReturnStateFunction, TView } from "./type";
+import type { TSchedulerEventWithExtras, TSchedulerGrid, TSchedulerHeader, TReturnStateFunction, TSchedulerView } from "./types";
 import { dayView, monthView, weekView } from "./utils";
 
 const hours = Array.from({ length: 24 }).flatMap((_, index) => [
@@ -11,7 +11,7 @@ const hours = Array.from({ length: 24 }).flatMap((_, index) => [
 
 export function initialize(
     name: string,
-    data: { events: TEventWithExtras[]; headers: THeader[] },
+    data: { events: TSchedulerEventWithExtras[]; headers: TSchedulerHeader[] },
 ): TReturnStateFunction {
     return (state) => {
         const headers = parseHeaders(data.headers);
@@ -30,7 +30,7 @@ export function initialize(
     };
 }
 
-export function setEvents(name: string, events: TEventWithExtras[]): TReturnStateFunction {
+export function setEvents(name: string, events: TSchedulerEventWithExtras[]): TReturnStateFunction {
     return (state) => {
         return {
             ...state,
@@ -42,7 +42,7 @@ export function setEvents(name: string, events: TEventWithExtras[]): TReturnStat
     };
 }
 
-export function setView(name: string, view: TView): TReturnStateFunction {
+export function setView(name: string, view: TSchedulerView): TReturnStateFunction {
     return (state) => {
         const headers = parseHeaders({ day: dayView, week: weekView, month: monthView }[view]());
         const grid = buildGrid(headers.at(-1) || []);
@@ -59,7 +59,7 @@ export function setView(name: string, view: TView): TReturnStateFunction {
     };
 }
 
-export function setHeaders(name: string, headers: THeader[]): TReturnStateFunction {
+export function setHeaders(name: string, headers: TSchedulerHeader[]): TReturnStateFunction {
     return (state) => {
         const parsedHeaders = parseHeaders(headers);
         const grid = buildGrid(parsedHeaders.at(-1) || []);
@@ -95,7 +95,7 @@ export function setMounted(name: string): TReturnStateFunction {
     };
 }
 
-export function setGrid(name: string, grid: ((grid: TGrid) => TGrid) | TGrid): TReturnStateFunction {
+export function setGrid(name: string, grid: ((grid: TSchedulerGrid) => TSchedulerGrid) | TSchedulerGrid): TReturnStateFunction {
     return (state) => {
         const pGrid = state[name].grid || {};
         const nGrid = typeof grid === "function" ? grid(pGrid || {}) : grid;
@@ -129,10 +129,10 @@ export function setHours(name: string, start: Dayjs, end: Dayjs): TReturnStateFu
     };
 }
 
-function parseHeaders(headers: THeader[]): THeader[][] {
-    const parsedHeaders: THeader[][] = [];
+function parseHeaders(headers: TSchedulerHeader[]): TSchedulerHeader[][] {
+    const parsedHeaders: TSchedulerHeader[][] = [];
 
-    function traverseHeader(header: THeader, level = 0) {
+    function traverseHeader(header: TSchedulerHeader, level = 0) {
         if (parsedHeaders.length !== level + 1) {
             parsedHeaders.push([]);
         }
@@ -154,8 +154,8 @@ function parseHeaders(headers: THeader[]): THeader[][] {
     return parsedHeaders;
 }
 
-function buildGrid(headers: THeader[]): TGrid {
-    const grid: TGrid = {};
+function buildGrid(headers: TSchedulerHeader[]): TSchedulerGrid {
+    const grid: TSchedulerGrid = {};
 
     for (const header of headers) {
         let currentHeader = header;

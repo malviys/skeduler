@@ -1,13 +1,13 @@
 import { create } from "zustand";
 
-import { TReturnStateFunction, TState } from "./type";
+import { TReturnStateFunction, TSchedulerState } from "./types";
 
-type T = {
-    state: TState;
+type TSchedulerStore = {
+    state: TSchedulerState;
     dispatch: (...fns: TReturnStateFunction[]) => void;
 };
 
-export const useStore = create<T>((set) => ({
+export const useStore = create<TSchedulerStore>((set) => ({
     state: {},
     dispatch: (...fns) => {
         set((state) => {
@@ -27,7 +27,7 @@ export function useDispatch() {
     return useStore((state) => state.dispatch);
 }
 
-export function useSelector<R>(selectorFn: (state: TState) => R) {
+export function useSelector<R>(selectorFn: (state: TSchedulerState) => R) {
     return useStore((state) => selectorFn(state.state));
 }
 

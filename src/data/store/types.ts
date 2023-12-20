@@ -1,65 +1,68 @@
 import { Dayjs } from "dayjs";
 
-export type TReturnStateFunction = (state: TState) => TState;
+export type TReturnStateFunction = (state: TSchedulerState) => TSchedulerState;
 
-/** Event: represents the events schedule in scheduler */
-export type TEvent = {
+/** 
+ * A Event 
+ */
+export type TSchedulerEvent = {
     id: string;
     title: string;
     start: Date;
     end: Date;
-    group: TEvent["id"][];
+    group: TSchedulerEvent["id"][];
     color?: string;
 };
 
 /** TODO: add doc comment */
-export type TEventWithExtras = TEvent & {
+export type TSchedulerEventWithExtras = TSchedulerEvent & {
     extras: {
-        coordinates?: { x: number; y: number };
-        dragging?: boolean;
+        coordinates: { x: number; y: number } | null;
+        dragging: boolean;
         visibility: "visible" | "hidden" | "faded";
+        collisions: string[];
     };
 };
 
 /** Header: represents the header of scheduler */
-export type THeader = {
+export type TSchedulerHeader = {
     id: string;
     title: string;
     span: number;
-    children: THeader[];
-    parent?: THeader;
+    children: TSchedulerHeader[];
+    parent?: TSchedulerHeader;
 };
 
 /** Cell: represents the cell of scheduler */
-export type TCell = {
+export type TSchedulerCell = {
     id: string;
     events: string[];
 };
 
 /** Grid: represents whole scheduler grid*/
-export type TGrid = Record<string | number, TCell[]>;
+export type TSchedulerGrid = Record<string | number, TSchedulerCell[]>;
 
 /** View: a view will represent how scheduler is structures. i.e weekly, monthly or a single day */
-export type TView = "day" | "week" | "month";
+export type TSchedulerView = "day" | "week" | "month";
 
 /** Store: A store can have multiple scheduler */
-export type TState = Record<
+export type TSchedulerState = Record<
     string,
     {
         // views:
-        view?: TView;
+        view?: TSchedulerView;
 
         // headers:
-        headers?: THeader[][];
+        headers?: TSchedulerHeader[][];
 
         // events:
-        events?: TEventWithExtras[];
+        events?: TSchedulerEventWithExtras[];
 
         // hours:
         hours?: Dayjs[];
 
         // grid:
-        grid?: TGrid;
+        grid?: TSchedulerGrid;
 
         // start:
         start?: Date;
@@ -83,9 +86,9 @@ export type TState = Record<
         isFetching?: boolean;
 
         // dragging:
-        dragging?: TEvent;
+        dragging?: TSchedulerEvent;
 
         // dropped:
-        dropped?: TEvent;
+        dropped?: TSchedulerEvent;
     }
 >;
