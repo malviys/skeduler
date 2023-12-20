@@ -22,20 +22,28 @@ function App() {
     React.useEffect(() => {
         setEvents([
             {
-                id: 1,
+                id: '1',
                 title: "Event 1",
-                start: new Date(new Date().setHours(11)),
-                end: new Date(new Date().setHours(12)),
-                group: [],
+                start: new Date(new Date().setHours(13)),
+                end: new Date(new Date().setHours(14)),
+                group: ['0'],
                 color: "red",
             },
             {
-                id: 2,
+                id: '2',
                 title: "Event 2",
                 start: new Date(new Date().setHours(11)),
                 end: new Date(new Date().setHours(12)),
-                group: [],
+                group: ['6'],
                 color: "yellow",
+            },
+            {
+                id: '3',
+                title: "Event 3",
+                start: new Date(new Date().setHours(11)),
+                end: new Date(new Date().setHours(12)),
+                group: ['5'],
+                color: "green",
             },
         ]);
     }, [setEvents]);

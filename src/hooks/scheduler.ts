@@ -26,7 +26,6 @@ export function useScheduler(name = "scheduler") {
             const events = (params?.events || []).map((itrEvent) => {
                 return {
                     ...itrEvent,
-                    extras: { coordinates: { x: 0, y: 0 } },
                 } as TEventWithExtras;
             });
 
@@ -41,7 +40,9 @@ export function useScheduler(name = "scheduler") {
             const eventsWithExtras = (events || []).map((itrEvent) => {
                 return {
                     ...itrEvent,
-                    extras: { coordinates: { x: 0, y: 0 } },
+                    extras: {
+                        visibility: "visible",
+                    },
                 } as TEventWithExtras;
             });
 

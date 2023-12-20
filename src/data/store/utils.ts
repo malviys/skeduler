@@ -6,7 +6,7 @@ export function dayView(): THeader[] {
     const day = dayjs();
 
     headers.push({
-        id: day.day(),
+        id: day.day().toString(),
         title: day.format("ddd"),
         children: [],
         span: 1,
@@ -23,7 +23,7 @@ export function weekView(): THeader[] {
         const dayAtIndex = day.add(dayIndex, "day");
 
         headers.push({
-            id: dayIndex,
+            id: dayIndex.toString(),
             title: dayAtIndex.format("dddd"),
             span: 1,
             children: [],
@@ -42,7 +42,7 @@ export function monthView(): THeader[] {
         const dayAtIndex = day.add(dayIndex, "day");
 
         headers.push({
-            id: dayIndex,
+            id: dayIndex.toString(),
             title: dayAtIndex.format("D"),
             span: 1,
             children: [],
@@ -53,14 +53,21 @@ export function monthView(): THeader[] {
 }
 
 export function eventToEventWithExtras(event: TEvent, extras?: TEventWithExtras["extras"] | null): TEventWithExtras {
+    const {
+        visibility = "visible",
+        coordinates = {
+            x: extras?.coordinates?.x || 0,
+            y: extras?.coordinates?.y || 0,
+        },
+        dragging,
+    } = extras || {};
+
     return {
         ...event,
         extras: {
-            ...(extras || {}),
-            coordinates: {
-                x: extras?.coordinates.x || 0,
-                y: extras?.coordinates.y || 0,
-            },
+            dragging,
+            coordinates,
+            visibility,
         },
     };
 }

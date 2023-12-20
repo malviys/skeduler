@@ -4,7 +4,7 @@ export type TReturnStateFunction = (state: TState) => TState;
 
 /** Event: represents the events schedule in scheduler */
 export type TEvent = {
-    id: string | number;
+    id: string;
     title: string;
     start: Date;
     end: Date;
@@ -23,7 +23,7 @@ export type TEventWithExtras = TEvent & {
 
 /** Header: represents the header of scheduler */
 export type THeader = {
-    id: string | number;
+    id: string;
     title: string;
     span: number;
     children: THeader[];
@@ -32,8 +32,8 @@ export type THeader = {
 
 /** Cell: represents the cell of scheduler */
 export type TCell = {
-    id: string | number;
-    events: (string | number)[];
+    id: string;
+    events: string[];
 };
 
 /** Grid: represents whole scheduler grid*/
