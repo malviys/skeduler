@@ -1,6 +1,6 @@
 import React from "react";
 
-import type { TEvent, TEventWithExtras, THeader } from "../data/store/type";
+import type { TSchedulerEvent, TSchedulerEventWithExtras, TSchedulerHeader } from "../data/store/types";
 import { useSchedulerInternalState } from "./data";
 
 /** Binds with scheduler component */
@@ -11,45 +11,45 @@ export function useScheduler(name = "scheduler") {
         initialized,
         setEvents: setStateEvents,
         setHeaders,
+        setIsLoading
     } = useSchedulerInternalState(name);
 
     /** Initialized scheduler state. Throws error if already initialized */
     const init = React.useCallback(
-        (params?: { events?: TEvent[]; headers?: THeader[] }) => {
-            if (initialized) {
-                throw new Error(
-                    `Scheduler: ${name} has been already initialized.\nTo reinitialized first clear the store`,
-                );
+        (params?: { events?: TSchedulerEvent[]; headers?: TSchedulerHeader[] }) => {
+            if (!initialized) {
+                const headers = params?.headers || [];
+                const events = (params?.events || []).map((itrEvent) => {
+                    return {
+                        ...itrEvent,
+                    } as TSchedulerEventWithExtras;
+                });
+
+                initState({ headers, events });
             }
-
-            const headers = params?.headers || [];
-            const events = (params?.events || []).map((itrEvent) => {
-                return {
-                    ...itrEvent,
-                } as TEventWithExtras;
-            });
-
-            initState({ headers, events });
         },
-        [name, initState],
+        [name, initialized, initState],
     );
 
     /** Set events */
     const setEvents = React.useCallback(
-        (events: TEvent[]) => {
-            const eventsWithExtras = (events || []).map((itrEvent) => {
+        (events: TSchedulerEvent[]) => {
+            const eventsWithExtras: TSchedulerEventWithExtras[] = (events || []).map((itrEvent) => {
                 return {
                     ...itrEvent,
-                    extras: {
+                    _extras: {
+                        coordinates: null,
                         visibility: "visible",
+                        collisions: new Set(),
+                        dragging: false,
                     },
-                } as TEventWithExtras;
+                };
             });
 
             setStateEvents(eventsWithExtras);
         },
-        [name, setStateEvents],
+        [setStateEvents],
     );
 
-    return { initialized, init, setHeaders, setEvents, clear };
+    return { initialized, init, setHeaders, setEvents, setIsLoading, clear };
 }

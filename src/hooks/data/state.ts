@@ -1,9 +1,15 @@
 import dayjs from "dayjs";
 import React from "react";
 
-import * as actions from "../../data/store/action";
+import * as actions from "../../data/store/actions";
 import { useDispatch, useSelector } from "../../data/store/store";
-import type { TEventWithExtras, TGrid, THeader, TView } from "../../data/store/type";
+import type {
+    TSchedulerEventWithExtras,
+    TSchedulerGrid,
+    TSchedulerHeader,
+    TSchedulerHeaderWithExtras,
+    TSchedulerView,
+} from "../../data/store/types";
 
 export function useSchedulerInternalState(name: string) {
     const dispatch = useDispatch();
@@ -15,8 +21,11 @@ export function useSchedulerInternalState(name: string) {
     const grid = useSelector((state) => state[name]?.grid || {});
 
     const init = React.useCallback(
-        (params?: { events?: TEventWithExtras[]; headers?: THeader[] }) => {
-            const headers = params?.headers || [];
+        (params?: { events?: TSchedulerEventWithExtras[]; headers?: TSchedulerHeader[] }) => {
+            const headers: TSchedulerHeaderWithExtras[] =
+                params?.headers?.map((it) => {
+                    return { ...it, _extras: { date: dayjs().startOf("date").toDate() } };
+                }) || [];
             const events = params?.events || [];
 
             dispatch(actions.initialize(name, { events, headers }));
@@ -26,21 +35,30 @@ export function useSchedulerInternalState(name: string) {
 
     /** Set headers */
     const setHeaders = React.useCallback(
-        (headers: THeader[]) => {
-            dispatch(actions.setHeaders(name, headers));
+        (headers: TSchedulerHeader[]) => {
+            const headersWithExtras: TSchedulerHeaderWithExtras[] = headers.map((it) => {
+                return {
+                    ...it,
+                    _extras: {
+                        date: dayjs().startOf("day").toDate(),
+                    },
+                };
+            });
+
+            dispatch(actions.setHeaders(name, headersWithExtras));
         },
         [name, dispatch],
     );
 
     const setEvents = React.useCallback(
-        (events: TEventWithExtras[]) => {
+        (events: TSchedulerEventWithExtras[]) => {
             dispatch(actions.setEvents(name, events));
         },
         [name, dispatch],
     );
 
     const setView = React.useCallback(
-        (view: TView) => {
+        (view: TSchedulerView) => {
             dispatch(actions.setView(name, view));
         },
         [name, dispatch],
@@ -58,8 +76,15 @@ export function useSchedulerInternalState(name: string) {
     );
 
     const setGrid = React.useCallback(
-        (grid: ((grid: TGrid) => TGrid) | TGrid) => {
+        (grid: ((grid: TSchedulerGrid) => TSchedulerGrid) | TSchedulerGrid) => {
             dispatch(actions.setGrid(name, grid));
+        },
+        [name, dispatch],
+    );
+
+    const setIsLoading = React.useCallback(
+        (isLoading: boolean) => {
+            dispatch(actions.setIsLoading(name, isLoading));
         },
         [name, dispatch],
     );
@@ -82,6 +107,7 @@ export function useSchedulerInternalState(name: string) {
         setMounted,
         setHours,
         setGrid,
+        setIsLoading,
         clear,
     };
 }
