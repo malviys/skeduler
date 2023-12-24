@@ -14,11 +14,14 @@ import type {
 export function useSchedulerInternalState(name: string) {
     const dispatch = useDispatch();
 
-    const initialized = useSelector((state) => state[name]?.initialized || false);
-    const mounted = useSelector((state) => state[name]?.mounted || false);
-    const events = useSelector((state) => state[name]?.events || []);
-    const headers = useSelector((state) => state[name]?.headers || []);
-    const grid = useSelector((state) => state[name]?.grid || {});
+    const {
+        initialized = false,
+        isLoading = false,
+        mounted = false,
+        events = [],
+        headers = [],
+        grid = {},
+    } = useSelector((state) => state[name] || {});
 
     const init = React.useCallback(
         (params?: { events?: TSchedulerEventWithExtras[]; headers?: TSchedulerHeader[] }) => {
@@ -96,6 +99,7 @@ export function useSchedulerInternalState(name: string) {
 
     return {
         initialized,
+        isLoading,
         mounted,
         events,
         headers,
