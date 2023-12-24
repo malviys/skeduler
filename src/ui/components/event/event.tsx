@@ -1,15 +1,15 @@
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { memo, useMemo } from "react";
 
-import { TEvent, TEventWithExtras } from "../../../data/store/type";
+import { TSchedulerEvent, TSchedulerEventWithExtras } from "../../../data/store/types";
 import Draggable from "../draggable/draggable";
 import { mergeClasses } from "../../../utils/styles";
 
 import classes from "./event.module.scss";
 
 type EventProps = {
-    event: TEventWithExtras;
-    renderEvent?: (event: TEventWithExtras, options: { dragHandler: SyntheticListenerMap }) => JSX.Element;
+    event: TSchedulerEventWithExtras;
+    renderEvent?: (event: TSchedulerEventWithExtras, options: { dragHandler: SyntheticListenerMap }) => JSX.Element;
 };
 
 function Event(props: EventProps) {
@@ -19,13 +19,13 @@ function Event(props: EventProps) {
         const {
             color,
             title,
-            extras: { visibility },
+            _extras: { visibility, collisions },
         } = event;
 
         return (
             <div
                 style={{
-                    width: "calc(163px - 2 * var(--scheduler-event-padding))",
+                    width: `calc((163.27px - 2 * var(--scheduler-event-padding)) / ${collisions.size + 1})`,
                     height: "calc(100px - 2 * var(--scheduler-event-padding))",
                     backgroundColor: color,
                     filter: visibility === "faded" ? "brightness(0.8)" : 'none',

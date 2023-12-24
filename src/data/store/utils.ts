@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
-import { TSchedulerEvent, TSchedulerEventWithExtras, TSchedulerHeader } from "./types";
+import { TSchedulerEvent, TSchedulerEventWithExtras, TSchedulerHeader, TSchedulerHeaderWithExtras } from "./types";
 
-export function dayView(): TSchedulerHeader[] {
-    const headers: TSchedulerHeader[] = [];
+export function dayView(): TSchedulerHeaderWithExtras[] {
+    const headers: TSchedulerHeaderWithExtras[] = [];
     const day = dayjs();
 
     headers.push({
@@ -10,13 +10,16 @@ export function dayView(): TSchedulerHeader[] {
         title: day.format("ddd"),
         children: [],
         span: 1,
+        _extras: {
+            date: day.toDate(),
+        },
     });
 
     return headers;
 }
 
-export function weekView(): TSchedulerHeader[] {
-    const headers: TSchedulerHeader[] = [];
+export function weekView(): TSchedulerHeaderWithExtras[] {
+    const headers: TSchedulerHeaderWithExtras[] = [];
     const day = dayjs().startOf("week");
 
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
@@ -27,14 +30,17 @@ export function weekView(): TSchedulerHeader[] {
             title: dayAtIndex.format("dddd"),
             span: 1,
             children: [],
+            _extras: {
+                date: dayAtIndex.toDate(),
+            },
         });
     }
 
     return headers;
 }
 
-export function monthView(): TSchedulerHeader[] {
-    const headers: TSchedulerHeader[] = [];
+export function monthView(): TSchedulerHeaderWithExtras[] {
+    const headers: TSchedulerHeaderWithExtras[] = [];
     const day = dayjs().startOf("month");
     const daysInMonth = day.daysInMonth();
 
@@ -46,13 +52,19 @@ export function monthView(): TSchedulerHeader[] {
             title: dayAtIndex.format("D"),
             span: 1,
             children: [],
+            _extras: {
+                date: dayAtIndex.toDate(),
+            },
         });
     }
 
     return headers;
 }
 
-export function eventToEventWithExtras(event: TSchedulerEvent, extras: TSchedulerEventWithExtras["extras"] | null): TSchedulerEventWithExtras {
+export function eventToEventWithExtras(
+    event: TSchedulerEvent,
+    extras: TSchedulerEventWithExtras["_extras"] | null,
+): TSchedulerEventWithExtras {
     const {
         visibility = "visible",
         coordinates = {
@@ -60,12 +72,12 @@ export function eventToEventWithExtras(event: TSchedulerEvent, extras: TSchedule
             y: extras?.coordinates?.y || 0,
         },
         dragging = false,
-        collisions = []
+        collisions = new Set<string>(),
     } = extras || {};
 
     return {
         ...event,
-        extras: {
+        _extras: {
             dragging,
             coordinates,
             visibility,
@@ -75,7 +87,7 @@ export function eventToEventWithExtras(event: TSchedulerEvent, extras: TSchedule
 }
 
 export function eventWithExtrasToEvent(event: TSchedulerEventWithExtras): TSchedulerEvent {
-    const { extras, ...restEvent } = event;
+    const { _extras, ...restEvent } = event;
 
     return restEvent;
 }
