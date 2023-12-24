@@ -2,40 +2,110 @@ import { Dayjs } from "dayjs";
 
 export type TReturnStateFunction = (state: TSchedulerState) => TSchedulerState;
 
-/** 
- * A Event 
+/**
+ * A Event
  */
 export type TSchedulerEvent = {
+    /**
+     * An unique identifier
+     */
     id: string;
+
+    /**
+     * Title of event visible to user
+     */
     title: string;
+
+    /**
+     * Start date and time of event
+     */
     start: Date;
+
+    /**
+     * End date and time of event
+     */
     end: Date;
+
+    /**
+     * List of header and their parent header ids
+     */
     group: TSchedulerEvent["id"][];
+
+    /**
+     * Background color of event
+     */
     color?: string;
 };
 
 /** TODO: add doc comment */
 export type TSchedulerEventWithExtras = TSchedulerEvent & {
-    extras: {
+    _extras: {
+        /**
+         * Location of event in scheduler
+         */
         coordinates: { x: number; y: number } | null;
+
+        /**
+         * Dragging state of event when user start or stop dragging
+         */
         dragging: boolean;
+
+        /**
+         * Where event is fully, partial or not visible to user
+         */
         visibility: "visible" | "hidden" | "faded";
-        collisions: string[];
+
+        /**
+         * Ids of other events with which current event is colliding.
+         */
+        collisions: Set<string>;
     };
 };
 
-/** Header: represents the header of scheduler */
+/** Schedulers grid header */
 export type TSchedulerHeader = {
+    /**
+     * An unique identifier
+     */
     id: string;
+
+    /**
+     * Title/Label of header visible to user
+     */
     title: string;
+
+    /**
+     * Horizontal space required by header
+     */
     span: number;
+
+    /**
+     * List of all child nodes
+     */
     children: TSchedulerHeader[];
+
+    /**
+     * Points to parent header
+     */
     parent?: TSchedulerHeader;
+};
+
+export type TSchedulerHeaderWithExtras = TSchedulerHeader & {
+    _extras: {
+        date: Date;
+    };
 };
 
 /** Cell: represents the cell of scheduler */
 export type TSchedulerCell = {
+    /**
+     * An unique identifier
+     */
     id: string;
+
+    /**
+     * List of all event ids placed over current cell
+     */
     events: string[];
 };
 
@@ -49,13 +119,13 @@ export type TSchedulerView = "day" | "week" | "month";
 export type TSchedulerState = Record<
     string,
     {
-        // views:
+        // Scheduler view
         view?: TSchedulerView;
 
-        // headers:
-        headers?: TSchedulerHeader[][];
+        // Scheduler headers
+        headers?: TSchedulerHeaderWithExtras[][];
 
-        // events:
+        // Scheduler events
         events?: TSchedulerEventWithExtras[];
 
         // hours:
