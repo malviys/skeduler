@@ -1,5 +1,13 @@
-import dayjs, { Dayjs } from "dayjs";
-import type { TSchedulerEventWithExtras, TSchedulerGrid, TSchedulerHeader, TReturnStateFunction, TSchedulerView } from "./types";
+import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
+import type {
+    TReturnStateFunction,
+    TSchedulerEventWithExtras,
+    TSchedulerGrid,
+    TSchedulerHeader,
+    TSchedulerHeaderWithExtras,
+    TSchedulerView,
+} from "./types";
 import { dayView, monthView, weekView } from "./utils";
 
 const hours = Array.from({ length: 24 }).flatMap((_, index) => [
@@ -11,7 +19,7 @@ const hours = Array.from({ length: 24 }).flatMap((_, index) => [
 
 export function initialize(
     name: string,
-    data: { events: TSchedulerEventWithExtras[]; headers: TSchedulerHeader[] },
+    data: { events: TSchedulerEventWithExtras[]; headers: TSchedulerHeaderWithExtras[] },
 ): TReturnStateFunction {
     return (state) => {
         const headers = parseHeaders(data.headers);
@@ -59,7 +67,7 @@ export function setView(name: string, view: TSchedulerView): TReturnStateFunctio
     };
 }
 
-export function setHeaders(name: string, headers: TSchedulerHeader[]): TReturnStateFunction {
+export function setHeaders(name: string, headers: TSchedulerHeaderWithExtras[]): TReturnStateFunction {
     return (state) => {
         const parsedHeaders = parseHeaders(headers);
         const grid = buildGrid(parsedHeaders.at(-1) || []);
@@ -95,7 +103,10 @@ export function setMounted(name: string): TReturnStateFunction {
     };
 }
 
-export function setGrid(name: string, grid: ((grid: TSchedulerGrid) => TSchedulerGrid) | TSchedulerGrid): TReturnStateFunction {
+export function setGrid(
+    name: string,
+    grid: ((grid: TSchedulerGrid) => TSchedulerGrid) | TSchedulerGrid,
+): TReturnStateFunction {
     return (state) => {
         const pGrid = state[name].grid || {};
         const nGrid = typeof grid === "function" ? grid(pGrid || {}) : grid;
@@ -129,10 +140,22 @@ export function setHours(name: string, start: Dayjs, end: Dayjs): TReturnStateFu
     };
 }
 
-function parseHeaders(headers: TSchedulerHeader[]): TSchedulerHeader[][] {
-    const parsedHeaders: TSchedulerHeader[][] = [];
+export function setIsLoading(name: string, isLoading: boolean): TReturnStateFunction {
+    return (state) => {
+        return {
+            ...state,
+            [name]: {
+                ...state[name],
+                isLoading,
+            },
+        };
+    };
+}
 
-    function traverseHeader(header: TSchedulerHeader, level = 0) {
+function parseHeaders(headers: TSchedulerHeaderWithExtras[]): TSchedulerHeaderWithExtras[][] {
+    const parsedHeaders: TSchedulerHeaderWithExtras[][] = [];
+
+    function traverseHeader(header: TSchedulerHeaderWithExtras, level = 0) {
         if (parsedHeaders.length !== level + 1) {
             parsedHeaders.push([]);
         }
@@ -141,7 +164,15 @@ function parseHeaders(headers: TSchedulerHeader[]): TSchedulerHeader[][] {
 
         for (const child of header.children) {
             child.parent = header;
-            header.span += traverseHeader(child, level + 1);
+            header.span += traverseHeader(
+                {
+                    ...child,
+                    _extras: {
+                        date: dayjs().startOf("day").toDate(),
+                    },
+                },
+                level + 1,
+            );
         }
 
         return header.span;
