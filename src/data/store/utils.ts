@@ -11,7 +11,7 @@ export function dayView(): TSchedulerHeaderWithExtras[] {
         children: [],
         span: 1,
         _extras: {
-            date: day.toDate(),
+            date: day,
         },
     });
 
@@ -31,7 +31,7 @@ export function weekView(): TSchedulerHeaderWithExtras[] {
             span: 1,
             children: [],
             _extras: {
-                date: dayAtIndex.toDate(),
+                date: dayAtIndex,
             },
         });
     }
@@ -53,7 +53,7 @@ export function monthView(): TSchedulerHeaderWithExtras[] {
             span: 1,
             children: [],
             _extras: {
-                date: dayAtIndex.toDate(),
+                date: dayAtIndex,
             },
         });
     }
@@ -77,6 +77,8 @@ export function eventToEventWithExtras(
 
     return {
         ...event,
+        end: dayjs(event.end),
+        start: dayjs(event.start),
         _extras: {
             dragging,
             coordinates,
@@ -87,9 +89,9 @@ export function eventToEventWithExtras(
 }
 
 export function eventWithExtrasToEvent(event: TSchedulerEventWithExtras): TSchedulerEvent {
-    const { _extras, ...restEvent } = event;
+    const { _extras, end, start, ...restEvent } = event;
 
-    return restEvent;
+    return { ...restEvent, start: start.toDate(), end: end.toDate() };
 }
 
 // export function parseHeaders(headers: THeader[]): THeader[][] {

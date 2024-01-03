@@ -1,11 +1,12 @@
 import { Dayjs } from "dayjs";
+import { ReplaceWith } from "../../utils/type";
 
 export type TReturnStateFunction = (state: TSchedulerState) => TSchedulerState;
 
 /**
- * A Event
+ * A Event with managed extra properties.
  */
-export type TSchedulerEvent = {
+export type TSchedulerEventWithExtras = {
     /**
      * An unique identifier
      */
@@ -19,48 +20,58 @@ export type TSchedulerEvent = {
     /**
      * Start date and time of event
      */
-    start: Date;
+    start: Dayjs;
 
     /**
      * End date and time of event
      */
-    end: Date;
+    end: Dayjs;
 
     /**
      * List of header and their parent header ids
      */
-    group: TSchedulerEvent["id"][];
+    group: string[];
 
     /**
      * Background color of event
      */
     color?: string;
-};
 
-/** TODO: add doc comment */
-export type TSchedulerEventWithExtras = TSchedulerEvent & {
+    /**
+     * Extra properties that were internally managed by the scheduler
+     */
     _extras: {
         /**
          * Location of event in scheduler
          */
-        coordinates: { x: number; y: number } | null;
+        coordinates?: { x: number; y: number };
 
         /**
          * Dragging state of event when user start or stop dragging
          */
-        dragging: boolean;
+        dragging?: boolean;
 
         /**
          * Where event is fully, partial or not visible to user
          */
-        visibility: "visible" | "hidden" | "faded";
+        visibility?: "visible" | "hidden" | "faded";
 
         /**
          * Ids of other events with which current event is colliding.
          */
-        collisions: Set<string>;
+        collisions?: Set<string>;
+
+        /**
+         * Position of current event with respect to other colliding events.
+         */
+        index?: number;
     };
 };
+
+/**
+ * Event
+ */
+export type TSchedulerEvent = Omit<ReplaceWith<TSchedulerEventWithExtras, { start: Date; end: Date }>, "_extras">;
 
 /** Schedulers grid header */
 export type TSchedulerHeader = {
@@ -92,7 +103,7 @@ export type TSchedulerHeader = {
 
 export type TSchedulerHeaderWithExtras = TSchedulerHeader & {
     _extras: {
-        date: Date;
+        date: Dayjs;
     };
 };
 
@@ -119,46 +130,77 @@ export type TSchedulerView = "day" | "week" | "month";
 export type TSchedulerState = Record<
     string,
     {
-        // Scheduler view
+        /**
+         *
+         */
         view?: TSchedulerView;
 
-        // Scheduler headers
+        /**
+         * List of headers
+         */
         headers?: TSchedulerHeaderWithExtras[][];
 
-        // Scheduler events
+        /**
+         * List of events that were scheduled in Scheduler.
+         */
         events?: TSchedulerEventWithExtras[];
 
         // hours:
         hours?: Dayjs[];
 
-        // grid:
+        /**
+         * Provides reference points for each row of grid. Represents the rows of the first column of the grid.
+         */
+        rowLabels?: string[];
+
+        /**
+         * Represents the whole scheduler
+         */
         grid?: TSchedulerGrid;
 
-        // start:
-        start?: Date;
+        /**
+         * Start time of scheduler. Default 12 AM
+         */
+        start?: Dayjs;
 
-        // end:
-        end?: Date;
+        /**
+         * End time of scheduler. Default 11 PM
+         */
+        end?: Dayjs;
 
-        // duration:
+        /**
+         * Duration of each row/cell. Used to divide an hour into multiple parts, default 15 minutes.
+         */
         duration?: number;
 
-        // initialize:
+        /**
+         * If true store is initialized and scheduler can be rendered.
+         */
         initialized: boolean;
 
-        // mounted:
+        /**
+         * If true scheduler is rendered and mounted into the dom.
+         */
         mounted?: boolean;
 
-        // isLoading:
+        /**
+         * If true all user interactions are blocked.
+         */
         isLoading?: boolean;
 
-        // isFetching:
+        /**
+         *
+         */
         isFetching?: boolean;
 
-        // dragging:
-        dragging?: TSchedulerEvent;
+        /**
+         * Event that is in dragging state.
+         */
+        draggingEvent?: TSchedulerEventWithExtras | null;
 
-        // dropped:
-        dropped?: TSchedulerEvent;
+        /**
+         * Event that is recently dropped/scheduled.
+         */
+        droppedEvent?: TSchedulerEventWithExtras | null;
     }
 >;
