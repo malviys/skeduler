@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import type {
     TReturnStateFunction,
+    TSchedulerEvent,
     TSchedulerEventWithExtras,
     TSchedulerGrid,
     TSchedulerHeader,
@@ -124,9 +125,9 @@ export function setGrid(
     };
 }
 
-export function setHours(name: string, start: Dayjs, end: Dayjs): TReturnStateFunction {
-    const hours = Array.from({ length: end.diff(start, "hour") }, (_, index) => {
-        return dayjs().set("hours", index).set("minutes", 0).set("seconds", 0);
+export function setHours(name: string, start: Dayjs, end: Dayjs, duration?: number): TReturnStateFunction {
+    const rowLabels = Array.from({ length: end.diff(start, "hour") }, (_, index) => {
+        return dayjs().set("hours", index).set("minutes", 0).set("seconds", 0).toString();
     });
 
     return (state) => {
@@ -134,7 +135,7 @@ export function setHours(name: string, start: Dayjs, end: Dayjs): TReturnStateFu
             ...state,
             [name]: {
                 ...state[name],
-                hours,
+                rowLabels,
             },
         };
     };
@@ -147,6 +148,30 @@ export function setIsLoading(name: string, isLoading: boolean): TReturnStateFunc
             [name]: {
                 ...state[name],
                 isLoading,
+            },
+        };
+    };
+}
+
+export function setDraggingEvent(name: string, event?: TSchedulerEventWithExtras | null): TReturnStateFunction {
+    return (state) => {
+        return {
+            ...state,
+            [name]: {
+                ...state[name],
+                draggingEvent: event,
+            },
+        };
+    };
+}
+
+export function setDroppedEvent(name: string, event?: TSchedulerEventWithExtras | null): TReturnStateFunction {
+    return (state) => {
+        return {
+            ...state,
+            [name]: {
+                ...state[name],
+                droppedEvent: event,
             },
         };
     };
@@ -168,7 +193,7 @@ function parseHeaders(headers: TSchedulerHeaderWithExtras[]): TSchedulerHeaderWi
                 {
                     ...child,
                     _extras: {
-                        date: dayjs().startOf("day").toDate(),
+                        date: dayjs().startOf("day"),
                     },
                 },
                 level + 1,
