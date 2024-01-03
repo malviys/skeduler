@@ -25,10 +25,14 @@ function Draggable(props: DraggableProps) {
         },
     });
 
+    const {
+        _extras: { coordinates = { x: 0, y: 0 } },
+    } = data;
+
     const style = {
-        left: data._extras.coordinates?.x || 0,
-        top: data._extras.coordinates?.y || 0,
-        transform: CSS.Translate.toString(transform),
+        left: coordinates.x,
+        top: coordinates.y,
+        // transform: CSS.Translate.toString(transform),
     } as React.CSSProperties;
 
     const renderChildren = useMemo(() => {
