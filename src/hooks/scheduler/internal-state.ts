@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import React from "react";
 
 import * as actions from "../../data/store/actions";
@@ -21,14 +21,22 @@ export function useSchedulerInternalState(name: string) {
         events = [],
         headers = [],
         grid = {},
+        draggingEvent,
+        droppedEvent,
     } = useSelector((state) => state[name] || {});
 
     const init = React.useCallback(
         (params?: { events?: TSchedulerEventWithExtras[]; headers?: TSchedulerHeader[] }) => {
             const headers: TSchedulerHeaderWithExtras[] =
                 params?.headers?.map((it) => {
-                    return { ...it, _extras: { date: dayjs().startOf("date").toDate() } };
+                    return {
+                        ...it,
+                        _extras: {
+                            date: dayjs().startOf("date"),
+                        },
+                    };
                 }) || [];
+
             const events = params?.events || [];
 
             dispatch(actions.initialize(name, { events, headers }));
@@ -43,7 +51,7 @@ export function useSchedulerInternalState(name: string) {
                 return {
                     ...it,
                     _extras: {
-                        date: dayjs().startOf("day").toDate(),
+                        date: dayjs().startOf("day"),
                     },
                 };
             });
@@ -72,8 +80,8 @@ export function useSchedulerInternalState(name: string) {
     }, [name, dispatch]);
 
     const setHours = React.useCallback(
-        (start: Date, end: Date) => {
-            dispatch(actions.setHours(name, dayjs(start), dayjs(end)));
+        (start: Dayjs, end: Dayjs, duration: 15 | 30 | 60 = 15) => {
+            dispatch(actions.setHours(name, start, end, duration));
         },
         [name, dispatch],
     );
@@ -92,6 +100,20 @@ export function useSchedulerInternalState(name: string) {
         [name, dispatch],
     );
 
+    const setDraggingEvent = React.useCallback(
+        (event?: TSchedulerEventWithExtras | null) => {
+            dispatch(actions.setDraggingEvent(name, event));
+        },
+        [name, dispatch],
+    );
+
+    const setDroppedEvent = React.useCallback(
+        (event?: TSchedulerEventWithExtras | null) => {
+            dispatch(actions.setDroppedEvent(name, event));
+        },
+        [name, dispatch],
+    );
+
     /** Clears scheduer state */
     const clear = React.useCallback(() => {
         dispatch(actions.clear(name));
@@ -104,6 +126,8 @@ export function useSchedulerInternalState(name: string) {
         events,
         headers,
         grid,
+        draggingEvent,
+        droppedEvent,
         init,
         setHeaders,
         setEvents,
@@ -112,6 +136,8 @@ export function useSchedulerInternalState(name: string) {
         setHours,
         setGrid,
         setIsLoading,
+        setDraggingEvent,
+        setDroppedEvent,
         clear,
     };
 }
