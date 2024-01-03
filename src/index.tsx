@@ -2,8 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import reportWebVitals from "./reportWebVitals";
 
-import Scheduler from "./ui/scheduler";
+import { Scheduler } from "./ui";
+
 import { useScheduler } from "./hooks/scheduler";
+
+import { fetchEvents } from "./data/services/events";
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
@@ -13,39 +16,21 @@ root.render(
 );
 
 function App() {
-    const { init, setEvents } = useScheduler("scheduler");
+    const { init, setIsLoading, setEvents } = useScheduler("scheduler");
+
+    const [schedulerState, setSchedulerState] = React.useState<{ name: string; view: string }>();
 
     React.useLayoutEffect(() => {
         init();
     }, [init]);
 
     React.useEffect(() => {
-        setEvents([
-            {
-                id: '1',
-                title: "Event 1",
-                start: new Date(new Date().setHours(13)),
-                end: new Date(new Date().setHours(14)),
-                group: ['0'],
-                color: "red",
-            },
-            {
-                id: '2',
-                title: "Event 2",
-                start: new Date(new Date().setHours(11)),
-                end: new Date(new Date().setHours(12)),
-                group: ['6'],
-                color: "yellow",
-            },
-            {
-                id: '3',
-                title: "Event 3",
-                start: new Date(new Date().setHours(11)),
-                end: new Date(new Date().setHours(12)),
-                group: ['5'],
-                color: "green",
-            },
-        ]);
+        setIsLoading(true);
+
+        fetchEvents().then((res) => {
+            setEvents(res as Parameters<typeof setEvents>[0]);
+            setIsLoading(false);
+        });
     }, [setEvents]);
 
     const style: React.CSSProperties = {
@@ -64,3 +49,6 @@ function App() {
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
+
+export { useScheduler } from "./hooks/scheduler";
+export { default as Scheduler } from "./ui/scheduler";
