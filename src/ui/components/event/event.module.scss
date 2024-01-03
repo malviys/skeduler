@@ -3,7 +3,7 @@
     display: flex;
     column-gap: 0.5rem;
     text-transform: capitalize;
-    padding: var(--scheduler-event-padding);
+    overflow: hidden;
     border-radius: var(--scheduler-event-border-radius);
 }
 
