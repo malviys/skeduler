@@ -12,7 +12,7 @@ import TimeIndicator from "./components/time-indicator/time-indicator";
 
 import { setHours, setMounted, setView } from "../data/store/actions";
 import { useDispatch } from "../data/store/store";
-import type { TSchedulerEvent, TSchedulerEventWithExtras, TSchedulerHeader, TSchedulerView } from "../data/store/types";
+import type { SchedulerEvent, SchedulerEventWithExtras, SchedulerHeader, SchedulerView } from "../data/store/types";
 
 import { usePointerSensor } from "../hooks/dnd";
 import { useSchedulerInternalState } from "../hooks/scheduler";
@@ -25,68 +25,39 @@ import { getCssVariable, mergeClasses, parseCssVariable } from "../utils/styles"
 
 import classes from "./scheduler.module.scss";
 
-type TEventsProps = {
+type EventsProps = {
     name: string;
     cell: {
         height: number;
         width: number;
     };
-    renderEvent?: (event: TSchedulerEventWithExtras, options: { dragHandler: SyntheticListenerMap }) => JSX.Element;
+    renderEvent?:
+        | ((event: SchedulerEventWithExtras, options: { dragHandler: SyntheticListenerMap }) => JSX.Element)
+        | null;
 };
 
-const Events = React.memo(function (props: TEventsProps) {
+const Events = React.memo(function (props: EventsProps) {
     const { name, cell, renderEvent } = props;
     const { width, height } = cell;
 
     const { mounted, isLoading, events } = useSchedulerInternalState(name);
 
-    // calculate events coordinate
     const processCoordinates = React.useCallback(
-        (event: TSchedulerEventWithExtras): TSchedulerEventWithExtras => {
+        (event: SchedulerEventWithExtras): SchedulerEventWithExtras => {
             const { coordinates } = event._extras;
 
             if (coordinates) {
                 return event;
             }
 
-            const offsetX = parseInt(event.group.join("-"), 10) * (width + 1);
-            const offsetY = (event.start.hour() * 4 + Math.floor(event.start.minute() / 15)) * height;
+            const x = parseInt(event.group.join("-"), 10) * (width + 1);
+            const y =
+                event.start.hour() + 1 + (event.start.hour() * 4 + Math.floor(event.start.minute() / 15)) * height;
 
-            return { ...event, _extras: { ...event._extras, coordinates: { x: offsetX, y: offsetY } } };
+            return { ...event, _extras: { ...event._extras, coordinates: { x, y } } };
         },
         [width, height],
     );
-
-    // process colliding events, always call after coordinates were processed
-    // FIXME: move this process collision to drag end
-    const processCollisions = React.useCallback((event: TSchedulerEventWithExtras): TSchedulerEventWithExtras => {
-        const { id: eventId, start: eventStart, end: eventEnd, _extras } = event;
-        const { coordinates: eventCoords = {}, collisions: eventCollision = new Set() } = _extras;
-
-        const collidingEvents = events.filter((it) => {
-            const { id: itId, start: itStart, end: itEnd, _extras: itExtras } = it;
-            const { coordinates: itCoords = { x: 0, y: 0 } } = itExtras;
-
-            if (itId === eventId) {
-                return false;
-            }
-
-            // TODO: implement collision algo based on events coordinates
-            const hasSameTime =
-                dayjs(eventStart).isBetween(itStart, itEnd, null, "[)") || // [): itStart inclusive and itEnd exclusive
-                dayjs(eventEnd).isBetween(itStart, itEnd, null, "(]"); // (]: itStart exclusive and itEnd inclusive
-
-            return hasSameTime;
-        });
-
-        // remove old collisions
-        eventCollision.clear();
-
-        // add new collisions
-        collidingEvents.forEach((it) => eventCollision.add(it.id));
-
-        return { ...event };
-    }, []);
 
     if (!mounted || isLoading) {
         return <></>;
@@ -97,7 +68,7 @@ const Events = React.memo(function (props: TEventsProps) {
             {events.map((event) => (
                 <DraggableEvent
                     key={`scheduler_event_[${event.id}]`}
-                    event={reduceFns(event, processCoordinates, processCollisions)}
+                    event={reduceFns(event, processCoordinates /* processCollisions */)}
                     renderEvent={renderEvent}
                 />
             ))}
@@ -105,13 +76,13 @@ const Events = React.memo(function (props: TEventsProps) {
     );
 });
 
-type TSchedulerHeaderProps = {
+type HeaderProps = {
     name: string;
     elevateHeader: boolean;
     elevateTimeColumn: boolean;
 };
 
-const SchedulerHeader = React.memo(function (props: TSchedulerHeaderProps): JSX.Element {
+const Header = React.memo(function (props: HeaderProps): JSX.Element {
     const { name, elevateHeader, elevateTimeColumn } = props;
 
     const { registerElement } = useDomSelector();
@@ -148,14 +119,16 @@ const SchedulerHeader = React.memo(function (props: TSchedulerHeaderProps): JSX.
     );
 });
 
-type TSchedulerBodyProps = {
+type BodyProps = {
     name: string;
     elevateTimeColumn: boolean;
     loader?: JSX.Element;
-    renderEvent?: (event: TSchedulerEventWithExtras, options: { dragHandler: SyntheticListenerMap }) => JSX.Element;
+    renderEvent?:
+        | ((event: SchedulerEventWithExtras, options: { dragHandler: SyntheticListenerMap }) => JSX.Element)
+        | null;
 };
 
-const SchedulerBody = React.memo(function (props: TSchedulerBodyProps): JSX.Element {
+const Body = React.memo(function (props: BodyProps): JSX.Element {
     const { name, elevateTimeColumn, loader, renderEvent } = props;
 
     const { registerElement, getElement } = useDomSelector();
@@ -216,7 +189,7 @@ const SchedulerBody = React.memo(function (props: TSchedulerBodyProps): JSX.Elem
                     }}
                     renderEvent={renderEvent}
                 />
-                <DragOverlay dropAnimation={null}>
+                <DragOverlay dropAnimation={null} className={classes.scheduler_drag_overlay}>
                     {draggingEvent ? <Event event={draggingEvent} dragging /> : null}
                 </DragOverlay>
             </div>
@@ -225,76 +198,43 @@ const SchedulerBody = React.memo(function (props: TSchedulerBodyProps): JSX.Elem
     );
 });
 
-export type TSchedulerProps<T> = {
-    /**
-     * @property {string} name --- Name will bind scheduler component to useScheduler(name) hook.
-     *
-     * Example:
-     * ```js
-     * import Scheduler, {useScheduler} from "@malviys/skeduler";
-     *
-     * function ComponentOne(){
-     *      const scheduler = useScheduler('scheduler');
-     *
-     *      return <ComponentTwo/>;
-     * }
-     *
-     * function ComponentTwo(){
-     *      const scheduler = useScheduler('scheduler');
-     *
-     *      return <Scheduler name="scheduler"/>;
-     * }
-     * ```
-     *
-     * The scheduler in component one and component two can update the state of <Scheduler/> component.\n
-     * Also, single page can have multiple scheduler components with different name and their respective hooks.
-     */
+export type SchedulerProps<T> = {
     name: string;
-
-    /**
-     * @property {TView} view -- A view defines the structure of scheduler.
-     *
-     * A view can be of day, week or month.
-     *
-     * @warning - setting headers from <strong>useScheduler()</strong> will override default view.
-     */
-    view: TSchedulerView;
-
-    /**
-     * @property {number} duration -- A cell will be divided into multiple part.
-     *
-     * Each part can be of 15, 30 or 60 minutes.
-     */
+    view: SchedulerView;
     duration?: 15 | 30 | 60;
-
-    /**
-     * @property {JSX.Element} loader -- Custom loader component rendered while scheduler events are loading
-     */
     loader?: JSX.Element;
-
-    /**
-     * @function {Function} renderEvent -- Renders custom event in scheduler. It will override default event component.
-     */
-    renderEvent?: (event: TSchedulerEvent, options: { dragHandler: SyntheticListenerMap }) => JSX.Element;
-
-    /**
-     * @function {Function} renderHeader -- Renders custom header cell in scheduler. It will override default header cell component.
-     */
-    renderHeader?: (header: TSchedulerHeader) => JSX.Element;
-
-    /**
-     * @function {Function} onDrag -- Called when events is getting dragged.
-     */
-    onDrag?: (event: T) => void;
-
-    /**
-     * @function {Function} onDrop -- Called when event is dropped successfully.
-     */
-    onDrop?: (event: T) => void;
+    renderEvent?: (event: SchedulerEvent, options: { dragHandler: SyntheticListenerMap }) => JSX.Element;
+    renderHeader?: (header: HeaderProps) => JSX.Element;
+    onDrag?: (event: SchedulerEvent) => void;
+    onDrop?: (event: SchedulerEvent) => void;
 };
 
-function Scheduler<T extends TSchedulerEvent>(props: TSchedulerProps<T>) {
-    const { name, view, loader, duration = 15, renderEvent, renderHeader, onDrag, onDrop } = props;
+function processCollisions<T extends SchedulerEventWithExtras>(event: T, events: T[]): T {
+    const { id, start, end, _extras } = event;
+    const { collisions = new Set() } = _extras;
+
+    const collidingEvents = events.filter((itEvent) => {
+        const { id: itId, start: itStart, end: itEnd } = itEvent;
+
+        if (itId === id) {
+            return false;
+        }
+
+        // TODO: implement collision algo based on events coordinates
+        const hasSameTime =
+            dayjs(start).isBetween(itStart, itEnd, null, "[)") || dayjs(end).isBetween(itStart, itEnd, null, "(]");
+
+        return hasSameTime;
+    });
+
+    collisions.clear();
+    collidingEvents.forEach(({ id }) => collisions.add(id));
+
+    return { ...event, _extras: { ...event._extras, collisions: collisions } };
+}
+
+function Scheduler<T extends SchedulerEvent>(props: SchedulerProps<T>) {
+    const { name, view, loader, duration = 15, renderEvent: _renderEvent, renderHeader, onDrag, onDrop } = props;
 
     const dispatch = useDispatch();
     const sensors = useSensors(usePointerSensor());
@@ -306,25 +246,30 @@ function Scheduler<T extends TSchedulerEvent>(props: TSchedulerProps<T>) {
     const [elevateTimeColumn, setElevateTimeColumn] = React.useState(false);
     const [modifiers, setModifiers] = React.useState<Modifier[]>([]);
 
-    // mount
+    const headerRows = getElement("scheduler_header_rows");
+    const bodyRows = getElement("scheduler_body_rows");
+    const cellWidth = headerRows?.lastElementChild?.firstElementChild?.clientWidth || 1;
+    const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height"));
+
+    // console.log(events);
+
     React.useEffect(() => {
         if (initialized) {
             dispatch(setMounted(name));
             dispatch(setHours(name, dayjs().startOf("day"), dayjs().endOf("day")));
 
-            if ((["day", "week", "month"] as TSchedulerView[]).includes(view)) {
+            if ((["day", "week", "month"] as SchedulerView[]).includes(view)) {
                 dispatch(setView(name, view));
             }
         }
     }, [initialized, setMounted]);
 
-    // mount: attach scroll listeners
     React.useEffect(() => {
         const headerRows = getElement("scheduler_header_rows");
         const bodyRows = getElement("scheduler_body_rows_wrapper");
         const bodyTimeColumn = getElement("scheduler_body_time_column");
 
-        function schedulerBodyScrollListener(_event: Event) {
+        function schedulerBodyScrollListener(_ev: Event) {
             if (headerRows) {
                 headerRows.scrollLeft = bodyRows?.scrollLeft || 0;
             }
@@ -333,7 +278,6 @@ function Scheduler<T extends TSchedulerEvent>(props: TSchedulerProps<T>) {
                 bodyTimeColumn.scrollTop = bodyRows?.scrollTop || 0;
             }
 
-            // add elevation if scheduler is scrolled from its initial position
             setElevateHeader(!!bodyRows?.scrollTop);
             setElevateTimeColumn(!!bodyRows?.scrollLeft);
         }
@@ -345,112 +289,117 @@ function Scheduler<T extends TSchedulerEvent>(props: TSchedulerProps<T>) {
         return () => bodyRows?.removeEventListener("scroll", schedulerBodyScrollListener);
     }, [mounted, getElement]);
 
-    // mount: add modifiers
-    React.useEffect(() => {
-        const modifiers: Modifier[] = [];
+    const getCellDetails = React.useCallback(
+        (x: number, y: number) => {
+            const r = Math.floor((y - Math.floor(y / cellHeight)) / cellHeight);
+            const c = Math.floor(x / cellWidth);
+            const cf = cellHeight / (60 / duration);
 
-        if (mounted) {
-            const headerRows = getElement("scheduler_header_rows");
+            const row = bodyRows?.children.item(r) as HTMLElement | null;
+            const cell = row?.children.item(c) as HTMLElement | null;
 
-            const cellWidth = headerRows?.lastElementChild?.firstElementChild?.clientWidth;
-            const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height")) / 4;
+            const top = row?.offsetTop || 0;
+            const left = cell?.offsetLeft || 0;
 
-            if (cellWidth && cellHeight) {
-                modifiers.push(
-                    snapToGridModifier(cellWidth, cellHeight, {
-                        dx: 1,
-                        dy: (y) => {
-                            return Math.floor(y / cellHeight) % 4 === 0 ? 1 : 0;
-                        },
-                    }),
-                );
-            }
-        }
+            return {
+                r,
+                c,
+                rf: Math.floor(Math.max(0, y - top) / cf),
+                cf: 0,
+                x: left,
+                y: top,
+                xf: 0,
+                yf: Math.floor(Math.max(0, y - top) / cf) * cf,
+                el: cell,
+            };
+        },
+        [bodyRows, cellHeight, cellWidth, duration, getElement],
+    );
 
-        setModifiers(modifiers);
-    }, [mounted]);
-
-    // triggers when event is first dragged
     const onDragStartHandler = React.useCallback(
         (ev: DragStartEvent) => {
-            const event = ev.active.data.current?.event as TSchedulerEventWithExtras;
+            const event = ev.active.data.current?.event as SchedulerEventWithExtras;
 
             if (event?.id) {
-                const newEvents = events.map((it) => {
-                    const mappedEvent = it;
+                const mappedEvents = events.map((itEvent) => {
+                    const mappedEvent = /* { ...it } */ itEvent;
 
-                    // make dragging events faded while dragging
                     if (mappedEvent.id === event.id) {
-                        mappedEvent._extras.visibility = "faded";
+                        mappedEvent._extras = {
+                            ...mappedEvent._extras,
+                            visibility: "faded",
+                        };
                     }
 
-                    return { ...mappedEvent };
+                    return mappedEvent;
                 });
 
-                setEvents(newEvents);
-                setDraggingEvent(event);
+                setEvents(mappedEvents);
+                setDraggingEvent({ ...event });
             }
         },
         [events, setDraggingEvent, setEvents],
     );
 
-    // triggers when event is in dragging state
     const onDragMoveHandler = React.useCallback(
         (ev: DragMoveEvent) => {
             const { active, delta } = ev;
-            const event = active.data.current?.event as TSchedulerEventWithExtras;
-
-            const headerRows = getElement("scheduler_header_rows");
-            const columns = Array.from(headerRows?.lastElementChild?.children || []) as HTMLElement[];
-            const cellCount = 60 / duration;
-
-            const cellWidth = headerRows?.lastElementChild?.firstElementChild?.clientWidth || 0;
-            const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height"));
+            let event = active.data.current?.event as SchedulerEventWithExtras;
 
             if (event?.id) {
-                const { id, _extras } = event;
-                const { coordinates = { x: 0, y: 0 } } = _extras;
+                const { r, x, y, xf, yf, rf, el } = getCellDetails(
+                    delta.x + (event._extras.coordinates?.x || 0),
+                    delta.y + (event._extras.coordinates?.y || 0),
+                );
 
-                // calculate event current position/coordinates
-                const nX = coordinates.x + delta.x;
-                const nY = coordinates.y + delta.y;
-
-                const startHour = Math.floor(nY / cellHeight);
-                const startMinute = Math.floor((nY % cellHeight) / (cellHeight / cellCount)) * duration;
-
-                const start = dayjs().set("hour", startHour).set("minute", startMinute);
+                const start = dayjs()
+                    .set("hour", r)
+                    .set("minute", rf * duration);
                 const end = start.add(event.end.diff(event.start, "minute"), "minute");
 
-                setDraggingEvent({ ...event, start, end, _extras: { ...event._extras, visibility: "visible" } });
+                if (x >= 0 && y >= 0) {
+                    event = {
+                        ...event,
+                        start,
+                        end,
+                        _extras: {
+                            ...event._extras,
+                            visibility: "visible",
+                            coordinates: {
+                                x: x + xf,
+                                y: y + yf,
+                            },
+                        },
+                    };
+                }
             }
+
+            setDraggingEvent(event);
         },
-        [events, duration, setDraggingEvent],
+        [events, duration, cellHeight, cellWidth, getCellDetails, setDraggingEvent],
     );
 
-    // triggers when user release event and dragging is stopped
     const onDragEndHandler = React.useCallback(
         (ev: DragEndEvent) => {
             const { active, delta } = ev;
-            const event = active.data.current?.event as TSchedulerEventWithExtras;
 
-            const bodyRows = getElement("scheduler_body_rows");
-            const cellHeight = parseCssVariable(getCssVariable("--scheduler-cell-height"));
-
+            let event = (active.data.current?.event as SchedulerEventWithExtras) || {};
+            
             if (event?.id) {
-                const { coordinates = { x: 0, y: 0 } } = event._extras;
-                const nX = coordinates.x + delta.x;
-                const nY = coordinates.y + delta.y;
+                const { r, c, x, y, xf, yf, rf } = getCellDetails(
+                    delta.x + (event._extras.coordinates?.x || 0),
+                    delta.y + (event._extras.coordinates?.y || 0),
+                );
 
-                const targetRowIndex = Math.floor(nY / cellHeight);
-                const targetColumnIndex = Math.floor(nX / 163);
+                if (r >= 0 && c >= 0) {
+                    const date = headers.at(-1)?.[c]?._extras.date || dayjs();
 
-                const targetRow = bodyRows?.children.item(targetRowIndex) as HTMLElement;
-                const targetColumn = targetRow?.children.item(targetColumnIndex) as HTMLElement;
-
-                if (targetRowIndex >= 0 && targetColumnIndex >= 0) {
-                    event._extras.coordinates = {
-                        x: targetColumn.offsetLeft,
-                        y: targetRow.offsetTop + Math.floor((nY % 50) / 12.5) * 12.5,
+                    event._extras = {
+                        ...event._extras,
+                        coordinates: {
+                            x: x + xf,
+                            y: y + yf,
+                        },
                     };
 
                     setGrid((grid) => {
@@ -461,26 +410,27 @@ function Scheduler<T extends TSchedulerEvent>(props: TSchedulerProps<T>) {
                                 grid[event.group.join("-")][current.hour() + Math.floor(current.minute() / 15)]; //TODO: Replace 15 with duration
 
                             if (cell) {
-                                // update old grid cells with event ids
                                 cell.events = cell.events.filter((itId) => itId !== event.id);
                             }
 
-                            //TODO: Replace 15 with duration
-                            current = current.add(15, "minute");
+                            current = current.add(duration, "minute");
                         }
+
+                        event._extras.index = 0;
 
                         return { ...grid };
                     });
 
-                    const date = headers.at(-1)?.[targetColumnIndex]?._extras.date || dayjs();
-                    const hour = Math.floor(nY / cellHeight);
-                    const minute = Math.floor((nY % cellHeight) / 12.5) * 15;
-                    const start = event.start.set("hour", hour).set("minute", minute);
+                    const start = date.set("hour", r).set("minute", rf * duration);
                     const end = start.add(event.end.diff(event.start, "minute"), "minute");
+                    const group = [date.day().toString()];
 
-                    event.group = [date.day().toString()];
-                    event.start = start;
-                    event.end = end;
+                    event = {
+                        ...event,
+                        start,
+                        end,
+                        group,
+                    };
 
                     setGrid((grid) => {
                         let current = dayjs(event.start);
@@ -493,6 +443,7 @@ function Scheduler<T extends TSchedulerEvent>(props: TSchedulerProps<T>) {
                                 // update new grid cells with event ids
                                 cell.events = cell.events.filter((itId) => itId !== event.id);
                                 cell.events.push(event.id);
+                                event._extras.index = Math.max(event._extras.index || 0, cell.events.length - 1);
                             }
 
                             current = current.add(15, "minute");
@@ -501,34 +452,61 @@ function Scheduler<T extends TSchedulerEvent>(props: TSchedulerProps<T>) {
                         return { ...grid };
                     });
 
-                    const newEvents = events.map((itrEvent) => {
-                        const mappedEvent = itrEvent.id === event.id ? event : itrEvent;
-
-                        // make all events visible again from faded after event is dropped.
-                        mappedEvent._extras = {
-                            ...mappedEvent._extras,
-                            visibility: "visible",
-                        };
-
-                        return { ...mappedEvent };
-                    });
-
-                    setEvents(newEvents);
                     setDroppedEvent({ ...event });
-                    setDraggingEvent(null);
                 }
             }
+
+            let mappedEvents = events.map((itEvent) => {
+                const mappedEvent = itEvent.id === event.id ? event : itEvent;
+
+                mappedEvent._extras = {
+                    ...mappedEvent._extras,
+                    visibility: "visible",
+                };
+
+                return { ...mappedEvent };
+            });
+
+            mappedEvents = mappedEvents.map((event) => processCollisions(event, mappedEvents));
+
+            setDraggingEvent(null);
+            setEvents(mappedEvents);
+
+            const { _extras, start, end, ...restEvent } = event;
+
+            onDrop?.({
+                ...restEvent,
+                start: start.toDate(),
+                end: end.toDate(),
+            });
         },
-        [events, setEvents, setDroppedEvent, setDraggingEvent, setGrid],
+        [events, cellWidth, cellHeight, getCellDetails, onDrop, setEvents, setDroppedEvent, setDraggingEvent, setGrid],
     );
 
     const onDragCancelHandler = React.useCallback(
-        (ev: DragCancelEvent) => {
+        (_: DragCancelEvent) => {
+            const mappedEvents = events.map((itEvent) => {
+                itEvent._extras.visibility = "visible";
+
+                return { ...itEvent };
+            });
+
             setDraggingEvent(null);
             setDroppedEvent(null);
+            setEvents(mappedEvents);
         },
-        [setDraggingEvent, setDroppedEvent],
+        [setEvents, setDraggingEvent, setDroppedEvent],
     );
+
+    const renderEvent = React.useMemo<BodyProps["renderEvent"]>(() => {
+        if (!_renderEvent) {
+            return null;
+        }
+
+        return ({ start, end, ...rest }, options) => {
+            return _renderEvent({ start: start.toDate(), end: end.toDate(), ...rest }, options);
+        };
+    }, [_renderEvent]);
 
     return (
         <DndContext
@@ -540,17 +518,8 @@ function Scheduler<T extends TSchedulerEvent>(props: TSchedulerProps<T>) {
             onDragCancel={onDragCancelHandler}
         >
             <div className={classes.scheduler}>
-                <SchedulerHeader name={name} elevateHeader={elevateHeader} elevateTimeColumn={elevateTimeColumn} />
-                <SchedulerBody
-                    name={name}
-                    elevateTimeColumn={elevateTimeColumn}
-                    loader={loader}
-                    renderEvent={
-                        renderEvent &&
-                        (({ start, end, ...rest }, options) =>
-                            renderEvent({ start: start.toDate(), end: end.toDate(), ...rest }, options))
-                    }
-                />
+                <Header name={name} elevateHeader={elevateHeader} elevateTimeColumn={elevateTimeColumn} />
+                <Body name={name} elevateTimeColumn={elevateTimeColumn} loader={loader} renderEvent={renderEvent} />
             </div>
         </DndContext>
     );
