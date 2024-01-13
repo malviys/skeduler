@@ -54,7 +54,9 @@ const Events = React.memo(function (props: EventsProps) {
             const y =
                 event.start.hour() + 1 + (event.start.hour() * 4 + Math.floor(event.start.minute() / 15)) * height;
 
-            return { ...event, _extras: { ...event._extras, coordinates: { x, y } } };
+            event._extras = { ...event._extras, coordinates: { x, y } };
+
+            return event;
         },
         [width, height],
     );
@@ -136,6 +138,46 @@ const Body = React.memo(function (props: BodyProps): JSX.Element {
 
     const headerRows = getElement("scheduler_header_rows");
 
+    const timeColumn = React.useMemo(() => {
+        return (
+            <>
+                {/* FIXME: replace inline rows calculation with precalculated rows*/}
+                {Array.from({ length: 24 }).map((_, index) => {
+                    const id = `scheduler_body_time_column_cell_[${index}]`;
+                    const key = id;
+
+                    return (
+                        <div key={key} id={id} className={classes.time_column_cell}>
+                            <span>{dayjs(new Date().setHours(index, 0)).format("HH:mm")}</span>
+                        </div>
+                    );
+                })}
+            </>
+        );
+    }, []);
+
+    const bodyRows = React.useMemo(() => {
+        return (
+            <div id="scheduler_body_rows" ref={registerElement} className={classes.body_rows}>
+                {/* FIXME: replace inline rows calculation with precalculated rows*/}
+                {Array.from({ length: 24 }).map((_, rowIndex) => {
+                    const rowId = `scheduler_body_row_[${rowIndex}]`;
+
+                    return (
+                        <div id={rowId} key={rowId} className={classes.body_row_columns}>
+                            {headers.at(-1)?.map((cell, columnIndex) => {
+                                const id = `scheduler_body_row_[${rowIndex}]_column_[${columnIndex}]_cell_[${cell.id}]`;
+                                const key = id;
+
+                                return <Cell key={key} id={id} />;
+                            })}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }, [headers]);
+
     return (
         <div id="scheduler_body" className={classes.body}>
             <div
@@ -148,39 +190,11 @@ const Body = React.memo(function (props: BodyProps): JSX.Element {
                 )}
             >
                 <TimeIndicator name={name} showLine={false} />
-                <>
-                    {/* FIXME: replace inline rows calculation with precalculated rows*/}
-                    {Array.from({ length: 24 }).map((_, index) => {
-                        const id = `scheduler_body_time_column_cell_[${index}]`;
-                        const key = id;
-
-                        return (
-                            <div key={key} id={id} className={classes.time_column_cell}>
-                                <span>{dayjs(new Date().setHours(index, 0)).format("HH:mm")}</span>
-                            </div>
-                        );
-                    })}
-                </>
+                {timeColumn}
             </div>
             <div id="scheduler_body_rows_wrapper" ref={registerElement} className={classes.body_rows_events_wrapper}>
                 <TimeIndicator name={name} showTimer={false} />
-                <div id="scheduler_body_rows" ref={registerElement} className={classes.body_rows}>
-                    {/* FIXME: replace inline rows calculation with precalculated rows*/}
-                    {Array.from({ length: 24 }).map((_, rowIndex) => {
-                        const rowId = `scheduler_body_row_[${rowIndex}]`;
-
-                        return (
-                            <div id={rowId} key={rowId} className={classes.body_row_columns}>
-                                {headers.at(-1)?.map((cell, columnIndex) => {
-                                    const id = `scheduler_body_row_[${rowIndex}]_column_[${columnIndex}]_cell_[${cell.id}]`;
-                                    const key = id;
-
-                                    return <Cell key={key} id={id} />;
-                                })}
-                            </div>
-                        );
-                    })}
-                </div>
+                {bodyRows}
                 <Events
                     name={name}
                     cell={{
@@ -189,7 +203,7 @@ const Body = React.memo(function (props: BodyProps): JSX.Element {
                     }}
                     renderEvent={renderEvent}
                 />
-                <DragOverlay dropAnimation={null} className={classes.scheduler_drag_overlay}>
+                <DragOverlay dropAnimation={null} className={classes.scheduler_drag_overlay} style={{ width: 168 }}>
                     {draggingEvent ? <Event event={draggingEvent} dragging /> : null}
                 </DragOverlay>
             </div>
@@ -210,11 +224,20 @@ export type SchedulerProps<T> = {
 };
 
 function processCollisions<T extends SchedulerEventWithExtras>(event: T, events: T[]): T {
-    const { id, start, end, _extras } = event;
-    const { collisions = new Set() } = _extras;
+    const {
+        id,
+        start,
+        end,
+        _extras: { collisions = new Set(), coordinates: { x = 0, y = 0 } = {} },
+    } = event;
 
     const collidingEvents = events.filter((itEvent) => {
-        const { id: itId, start: itStart, end: itEnd } = itEvent;
+        const {
+            id: itId,
+            start: itStart,
+            end: itEnd,
+            _extras: { coordinates: { x: itX, y: itY } = {} },
+        } = itEvent;
 
         if (itId === id) {
             return false;
@@ -230,7 +253,12 @@ function processCollisions<T extends SchedulerEventWithExtras>(event: T, events:
     collisions.clear();
     collidingEvents.forEach(({ id }) => collisions.add(id));
 
-    return { ...event, _extras: { ...event._extras, collisions: collisions } };
+    event._extras = {
+        ...event._extras,
+        collisions: collisions,
+    };
+
+    return event;
 }
 
 function Scheduler<T extends SchedulerEvent>(props: SchedulerProps<T>) {
@@ -384,7 +412,7 @@ function Scheduler<T extends SchedulerEvent>(props: SchedulerProps<T>) {
             const { active, delta } = ev;
 
             let event = (active.data.current?.event as SchedulerEventWithExtras) || {};
-            
+
             if (event?.id) {
                 const { r, c, x, y, xf, yf, rf } = getCellDetails(
                     delta.x + (event._extras.coordinates?.x || 0),
@@ -405,9 +433,12 @@ function Scheduler<T extends SchedulerEvent>(props: SchedulerProps<T>) {
                     setGrid((grid) => {
                         let current = dayjs(event.start);
 
-                        while (!current.isAfter(event.end)) {
+                        while (current.isBefore(event.end)) {
+                            // FIXME: Simplify
                             const cell =
-                                grid[event.group.join("-")][current.hour() + Math.floor(current.minute() / 15)]; //TODO: Replace 15 with duration
+                                grid[event.group.join("-")][
+                                    current.hour() * (60 / duration) + Math.floor(current.minute() / duration)
+                                ];
 
                             if (cell) {
                                 cell.events = cell.events.filter((itId) => itId !== event.id);
@@ -435,12 +466,14 @@ function Scheduler<T extends SchedulerEvent>(props: SchedulerProps<T>) {
                     setGrid((grid) => {
                         let current = dayjs(event.start);
 
-                        while (!current.isAfter(event.end)) {
+                        while (current.isBefore(event.end)) {
+                            // FIXME: Simplify
                             const cell =
-                                grid[event.group.join("-")][current.hour() + Math.floor(current.minute() / 15)];
+                                grid[event.group.join("-")][
+                                    current.hour() * (60 / duration) + Math.floor(current.minute() / duration)
+                                ];
 
                             if (cell) {
-                                // update new grid cells with event ids
                                 cell.events = cell.events.filter((itId) => itId !== event.id);
                                 cell.events.push(event.id);
                                 event._extras.index = Math.max(event._extras.index || 0, cell.events.length - 1);
@@ -464,13 +497,14 @@ function Scheduler<T extends SchedulerEvent>(props: SchedulerProps<T>) {
                     visibility: "visible",
                 };
 
-                return { ...mappedEvent };
+                return mappedEvent;
             });
 
             mappedEvents = mappedEvents.map((event) => processCollisions(event, mappedEvents));
 
             setDraggingEvent(null);
             setEvents(mappedEvents);
+            console.log(mappedEvents);
 
             const { _extras, start, end, ...restEvent } = event;
 
