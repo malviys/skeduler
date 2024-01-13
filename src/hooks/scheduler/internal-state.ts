@@ -4,11 +4,11 @@ import React from "react";
 import * as actions from "../../data/store/actions";
 import { useDispatch, useSelector } from "../../data/store/store";
 import type {
-    TSchedulerEventWithExtras,
-    TSchedulerGrid,
-    TSchedulerHeader,
-    TSchedulerHeaderWithExtras,
-    TSchedulerView,
+    SchedulerEventWithExtras,
+    SchedulerGrid,
+    SchedulerHeader,
+    SchedulerHeaderWithExtras,
+    SchedulerView,
 } from "../../data/store/types";
 
 export function useSchedulerInternalState(name: string) {
@@ -26,8 +26,8 @@ export function useSchedulerInternalState(name: string) {
     } = useSelector((state) => state[name] || {});
 
     const init = React.useCallback(
-        (params?: { events?: TSchedulerEventWithExtras[]; headers?: TSchedulerHeader[] }) => {
-            const headers: TSchedulerHeaderWithExtras[] =
+        (params?: { events?: SchedulerEventWithExtras[]; headers?: SchedulerHeader[] }) => {
+            const headers: SchedulerHeaderWithExtras[] =
                 params?.headers?.map((it) => {
                     return {
                         ...it,
@@ -46,8 +46,8 @@ export function useSchedulerInternalState(name: string) {
 
     /** Set headers */
     const setHeaders = React.useCallback(
-        (headers: TSchedulerHeader[]) => {
-            const headersWithExtras: TSchedulerHeaderWithExtras[] = headers.map((it) => {
+        (headers: SchedulerHeader[]) => {
+            const headersWithExtras: SchedulerHeaderWithExtras[] = headers.map((it) => {
                 return {
                     ...it,
                     _extras: {
@@ -62,14 +62,14 @@ export function useSchedulerInternalState(name: string) {
     );
 
     const setEvents = React.useCallback(
-        (events: TSchedulerEventWithExtras[]) => {
+        (events: SchedulerEventWithExtras[]) => {
             dispatch(actions.setEvents(name, events));
         },
         [name, dispatch],
     );
 
     const setView = React.useCallback(
-        (view: TSchedulerView) => {
+        (view: SchedulerView) => {
             dispatch(actions.setView(name, view));
         },
         [name, dispatch],
@@ -87,7 +87,7 @@ export function useSchedulerInternalState(name: string) {
     );
 
     const setGrid = React.useCallback(
-        (grid: ((grid: TSchedulerGrid) => TSchedulerGrid) | TSchedulerGrid) => {
+        (grid: ((grid: SchedulerGrid) => SchedulerGrid) | SchedulerGrid) => {
             dispatch(actions.setGrid(name, grid));
         },
         [name, dispatch],
@@ -101,14 +101,14 @@ export function useSchedulerInternalState(name: string) {
     );
 
     const setDraggingEvent = React.useCallback(
-        (event?: TSchedulerEventWithExtras | null) => {
+        (event?: SchedulerEventWithExtras | null) => {
             dispatch(actions.setDraggingEvent(name, event));
         },
         [name, dispatch],
     );
 
     const setDroppedEvent = React.useCallback(
-        (event?: TSchedulerEventWithExtras | null) => {
+        (event?: SchedulerEventWithExtras | null) => {
             dispatch(actions.setDroppedEvent(name, event));
         },
         [name, dispatch],

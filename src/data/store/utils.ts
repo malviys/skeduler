@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
-import { TSchedulerEvent, TSchedulerEventWithExtras, TSchedulerHeader, TSchedulerHeaderWithExtras } from "./types";
+import { SchedulerEvent, SchedulerEventWithExtras, SchedulerHeader, SchedulerHeaderWithExtras } from "./types";
 
-export function dayView(): TSchedulerHeaderWithExtras[] {
-    const headers: TSchedulerHeaderWithExtras[] = [];
+export function dayView(): SchedulerHeaderWithExtras[] {
+    const headers: SchedulerHeaderWithExtras[] = [];
     const day = dayjs();
 
     headers.push({
@@ -18,8 +18,8 @@ export function dayView(): TSchedulerHeaderWithExtras[] {
     return headers;
 }
 
-export function weekView(): TSchedulerHeaderWithExtras[] {
-    const headers: TSchedulerHeaderWithExtras[] = [];
+export function weekView(): SchedulerHeaderWithExtras[] {
+    const headers: SchedulerHeaderWithExtras[] = [];
     const day = dayjs().startOf("week");
 
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
@@ -39,8 +39,8 @@ export function weekView(): TSchedulerHeaderWithExtras[] {
     return headers;
 }
 
-export function monthView(): TSchedulerHeaderWithExtras[] {
-    const headers: TSchedulerHeaderWithExtras[] = [];
+export function monthView(): SchedulerHeaderWithExtras[] {
+    const headers: SchedulerHeaderWithExtras[] = [];
     const day = dayjs().startOf("month");
     const daysInMonth = day.daysInMonth();
 
@@ -62,9 +62,9 @@ export function monthView(): TSchedulerHeaderWithExtras[] {
 }
 
 export function eventToEventWithExtras(
-    event: TSchedulerEvent,
-    extras: TSchedulerEventWithExtras["_extras"] | null,
-): TSchedulerEventWithExtras {
+    event: SchedulerEvent,
+    extras: SchedulerEventWithExtras["_extras"] | null,
+): SchedulerEventWithExtras {
     const {
         visibility = "visible",
         coordinates = {
@@ -88,33 +88,8 @@ export function eventToEventWithExtras(
     };
 }
 
-export function eventWithExtrasToEvent(event: TSchedulerEventWithExtras): TSchedulerEvent {
+export function eventWithExtrasToEvent(event: SchedulerEventWithExtras): SchedulerEvent {
     const { _extras, end, start, ...restEvent } = event;
 
     return { ...restEvent, start: start.toDate(), end: end.toDate() };
 }
-
-// export function parseHeaders(headers: THeader[]): THeader[][] {
-// 	const parsedHeaders: THeader[][] = [];
-
-// 	function traverseHeader(header: THeader, level = 0) {
-// 		if (parsedHeaders.length !== level + 1) {
-// 			parsedHeaders.push([]);
-// 		}
-
-// 		parsedHeaders.at(level)?.push(header);
-
-// 		for (const child of header.children) {
-// 			child.parent = header;
-// 			header.span += traverseHeader(child, level + 1);
-// 		}
-
-// 		return header.span;
-// 	}
-
-// 	for (const header of headers) {
-// 		traverseHeader(header);
-// 	}
-
-// 	return parsedHeaders;
-// }

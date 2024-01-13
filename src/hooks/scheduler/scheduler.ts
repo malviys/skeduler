@@ -1,6 +1,6 @@
 import React from "react";
 
-import type { TSchedulerEvent, TSchedulerEventWithExtras, TSchedulerHeader } from "../../data/store/types";
+import type { SchedulerEvent, SchedulerEventWithExtras, SchedulerHeader } from "../../data/store/types";
 import { useSchedulerInternalState } from "./internal-state";
 import { ReplaceWith } from "../../utils/type";
 import dayjs from "dayjs";
@@ -18,10 +18,10 @@ export function useScheduler(name = "scheduler") {
 
     /** Initialized scheduler state. Throws error if already initialized */
     const init = React.useCallback(
-        (params?: { events?: TSchedulerEvent[]; headers?: TSchedulerHeader[] }) => {
+        (params?: { events?: SchedulerEvent[]; headers?: SchedulerHeader[] }) => {
             if (!initialized) {
                 const headers = params?.headers || [];
-                const events: TSchedulerEventWithExtras[] = (params?.events || []).map((it) => {
+                const events: SchedulerEventWithExtras[] = (params?.events || []).map((it) => {
                     return {
                         ...it,
                         start: dayjs(it.start),
@@ -38,8 +38,8 @@ export function useScheduler(name = "scheduler") {
 
     /** Set events */
     const setEvents = React.useCallback(
-        (events: TSchedulerEvent[]) => {
-            const eventsWithExtras: TSchedulerEventWithExtras[] = (events || []).map((it) => {
+        (events: SchedulerEvent[]) => {
+            const eventsWithExtras: SchedulerEventWithExtras[] = (events || []).map((it) => {
                 return {
                     ...it,
                     start: dayjs(it.start),

@@ -1,9 +1,9 @@
 import { create } from "zustand";
 
-import { TReturnStateFunction, TSchedulerState } from "./types";
+import { TReturnStateFunction, SchedulerState } from "./types";
 
 type TSchedulerStore = {
-    state: TSchedulerState;
+    state: SchedulerState;
     dispatch: (...fns: TReturnStateFunction[]) => void;
 };
 
@@ -27,10 +27,11 @@ export function useDispatch() {
     return useStore((state) => state.dispatch);
 }
 
-export function useSelector<R>(selectorFn: (state: TSchedulerState) => R) {
+export function useSelector<R>(selectorFn: (state: SchedulerState) => R) {
     return useStore((state) => selectorFn(state.state));
 }
 
+// TODO: Remove code in future, if not implementing synchronized dispatcher
 // function useSyncDispatch() {
 //     const storeDispatch = useStore((state) => state.dispatch);
 
