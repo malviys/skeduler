@@ -115,6 +115,10 @@
     }
 }
 
+.scheduler_drag_overlay {
+    transition: all 0.096s 0s ease;
+}
+
 .box_shadow_bottom {
     box-shadow: 3px 0px 8px 5px #5e5e5e;
 }
