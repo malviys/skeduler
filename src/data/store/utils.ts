@@ -3,7 +3,7 @@ import { SchedulerEvent, SchedulerEventWithExtras, SchedulerHeader, SchedulerHea
 
 export function dayView(): SchedulerHeaderWithExtras[] {
     const headers: SchedulerHeaderWithExtras[] = [];
-    const day = dayjs();
+    const day = dayjs().set("hour", 0).set("minute", 0).set("second", 0).set("millisecond", 0);
 
     headers.push({
         id: day.day().toString(),
@@ -20,7 +20,7 @@ export function dayView(): SchedulerHeaderWithExtras[] {
 
 export function weekView(): SchedulerHeaderWithExtras[] {
     const headers: SchedulerHeaderWithExtras[] = [];
-    const day = dayjs().startOf("week");
+    const day = dayjs().startOf("week").set("hour", 0).set("minute", 0).set("second", 0).set("millisecond", 0);
 
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
         const dayAtIndex = day.add(dayIndex, "day");
@@ -41,7 +41,7 @@ export function weekView(): SchedulerHeaderWithExtras[] {
 
 export function monthView(): SchedulerHeaderWithExtras[] {
     const headers: SchedulerHeaderWithExtras[] = [];
-    const day = dayjs().startOf("month");
+    const day = dayjs().startOf("month").set("hour", 0).set("minute", 0).set("second", 0).set("millisecond", 0);
     const daysInMonth = day.daysInMonth();
 
     for (let dayIndex = 0; dayIndex < daysInMonth; dayIndex++) {
