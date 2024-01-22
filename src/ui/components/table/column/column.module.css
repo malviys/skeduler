@@ -1,0 +1,7 @@
+.root {
+    display: flex;
+    flex-direction: column;
+    min-width: 50px;
+    width: 100%;
+    gap: 0.0625em;
+}
