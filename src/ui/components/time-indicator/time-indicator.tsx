@@ -4,7 +4,7 @@ import { useSelector } from "../../../data/store/store";
 import { useTimer } from "../../../hooks/system";
 import { getCssVariable, parseCssVariable } from "../../../utils/styles";
 
-import classes from "./time-indicator.module.scss";
+import classes from "./time-indicator.module.css";
 
 type TimeIndicatorProps = {
     name: string;
